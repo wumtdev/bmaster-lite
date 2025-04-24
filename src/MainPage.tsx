@@ -8,10 +8,12 @@ import {
 	Bell,
 	Mic,
 	MusicNoteList,
-	PlayFill
+	PlayFill,
+	PersonCircle,
+	Wrench
 } from 'react-bootstrap-icons';
 import { useQuery } from '@tanstack/react-query';
-import { getLocalUser } from '@/api/auth';
+import { AccountLocalInfo, getLocalUser } from '@/api/auth';
 import ForegroundNotification from '@/components/ForegroundNotification';
 import { LocalUserProvider } from '@/contexts/LocalUserContext';
 import BellsPage from '@/pages/BellsPage';
@@ -20,6 +22,7 @@ import SoundsPage from '@/pages/SoundsPage';
 import DraggableCard from '@/components/DraggableCard';
 import * as icoms from '@/api/icoms';
 import { IcomQuery } from '@/pages/icoms/queries';
+import SettingsPage from './pages/SettingsPage';
 
 export default function MainPage() {
 	const {
@@ -48,6 +51,27 @@ export default function MainPage() {
 	};
 
 	const mainIcom = mainIcomQuery.data;
+
+	let profile;
+	switch (localUser.type) {
+		case 'account':
+			const account = localUser as AccountLocalInfo;
+			profile = (
+				<>
+					<PersonCircle size='20' className='mr-2' />
+					<span>{account.name}</span>
+				</>
+			);
+			break;
+		case 'root':
+			profile = (
+				<>
+					<Wrench size='20' className='mr-2' />
+					<span>Администратор</span>
+				</>
+			)
+			break;
+	}
 
 	return (
 		<LocalUserProvider localUser={localUser}>
@@ -96,10 +120,9 @@ export default function MainPage() {
 							{/* User Info Section */}
 
 							{localUser && (
-								<div className='d-flex flex-col text-sm mt-4 mb-4'>
+								<div className='d-flex flex-col text-sm text-gray-700 mt-4 mb-4'>
 									<div className='d-flex flex-row mb-1'>
-										<Person size={20} className='mr-2' />
-										<span>{localUser?.name || 'Сервис'}</span>
+										{profile}
 									</div>
 									<div
 										className='d-flex flex-row mb-1 cursor-pointer'
@@ -122,6 +145,7 @@ export default function MainPage() {
 							<Route path='/bells' element={<BellsPage />} />
 							<Route path='/announcements' element={<AnnouncementsPage />} />
 							<Route path='/sounds' element={<SoundsPage />} />
+							<Route path='/settings' element={<SettingsPage />} />
 						</Routes>
 					</Container>
 				</main>
@@ -136,7 +160,10 @@ export default function MainPage() {
 				className='right-10 w-80'
 				header={
 					<span className='flex flex-row items-center gap-1 text-slate-700 font-medium'>
-						<span className='mr-3'>Воспроизведение</span> {mainIcom && mainIcom.playing && <PlayFill className='' size={'1.2rem'}/>}
+						<span className='mr-3'>Воспроизведение</span>{' '}
+						{mainIcom && mainIcom.playing && (
+							<PlayFill className='' size={'1.2rem'} />
+						)}
 					</span>
 				}
 			>

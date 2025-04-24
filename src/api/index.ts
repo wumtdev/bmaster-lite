@@ -7,8 +7,8 @@ const apiErrorSchema = z.object({
 
 type ApiError = z.infer<typeof apiErrorSchema>;
 
-
-export const BASE_URL = 'http://localhost:8000'
+export const ORIGIN = 'localhost:8000'
+export const BASE_URL = `http://${ORIGIN}`
 
 const api = axios.create({
 	baseURL: `${BASE_URL}/api` // Replace with your backend base URL

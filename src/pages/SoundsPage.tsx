@@ -11,17 +11,16 @@ import {
 	Speaker,
 	Trash
 } from 'react-bootstrap-icons';
-import { humanFileSize } from '@/utils';
+import { formatDurationMSS, humanFileSize } from '@/utils';
 import AudioPlayer from '@/components/AudioPlayer';
 import { BASE_URL } from '@/api';
 import { playSound } from '@/api/queries';
 import FileUploadButton from '@/components/FileUploadButton';
+import { useSounds } from '@/sounds';
 
 const SoundsPage = () => {
-	const soundsQuery = useQuery({
-		queryFn: () => sounds.getSoundInfo(),
-		queryKey: ['sounds']
-	});
+	const {soundsQuery} = useSounds();
+
 	const [selectedSoundName, setSelectedSoundName] = useState<
 		string | undefined
 	>(undefined);
@@ -95,7 +94,7 @@ const SoundsPage = () => {
 										<div className='text-sm text-gray-500 flex items-center gap-2'>
 											{soundInfo.sound_specs && (
 												<>
-													<span>0:00</span>
+													<span>{formatDurationMSS(soundInfo.sound_specs.duration)}</span>
 													<span>•</span>
 												</>
 											)}
@@ -119,7 +118,7 @@ const SoundsPage = () => {
 							className='ml-auto flex flex-row items-center gap-2'
 							handleFile={(file) => uploadSoundMut.mutate(file)}
 						>
-							Загрузить звук <Plus size='1.7rem' />
+							<Plus size='1.5rem' /> Загрузить звук
 						</FileUploadButton>
 					</div>
 				</div>

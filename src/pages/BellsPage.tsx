@@ -6,6 +6,8 @@ import {
 	patchLesson
 } from '@/api/lite/bells';
 import ForegroundNotification from '@/components/ForegroundNotification';
+import { useSounds } from '@/sounds';
+import { countMinutes } from '@/utils';
 import {
 	useMutation,
 	useQuery,
@@ -19,7 +21,13 @@ import React, {
 	useState
 } from 'react';
 import { Button, Card, Form, Spinner } from 'react-bootstrap';
-import { Floppy, PencilSquare, XOctagon } from 'react-bootstrap-icons';
+import {
+	Floppy,
+	PencilSquare,
+	Plus,
+	Trash,
+	XOctagon
+} from 'react-bootstrap-icons';
 import { Typeahead } from 'react-bootstrap-typeahead';
 
 export interface BellsContextData {
@@ -50,6 +58,8 @@ const LessonCard = ({
 		mutationKey: ['bells.lessons.switchEnabled'],
 		onSuccess: () => queryClient.invalidateQueries('bells')
 	});
+	
+	const {soundNameList} = useSounds();
 
 	const {
 		editingLessons,
@@ -65,9 +75,11 @@ const LessonCard = ({
 		// TODO: Add weekday reason
 	}
 
+	const overlap = lesson.start_at && lesson.end_at && countMinutes(lesson.end_at) - countMinutes(lesson.start_at) <= 0;
+
 	return (
 		<Card className='flex flex-col' {...attrs}>
-			<Card.Header className='flex flex-row gap-2.5 items-center text-2xl text-slate-500 p-0 pb-1 px-4 h-12'>
+			<Card.Header className='flex flex-row gap-2.5 items-center text-2xl text-slate-500 p-0 px-4 h-12'>
 				{!editingLessons && (
 					<Form.Check
 						type='switch'
@@ -84,13 +96,28 @@ const LessonCard = ({
 						Выключен: {disabledReason}
 					</i>
 				)}
+				{editingLessons && (
+					<>
+						{overlap && <i className='text-red-500 text-lg'>неправильный порядок начала и конца урока</i>}
+						<Button
+							variant='danger'
+							className='ml-auto'
+							onClick={() => {
+								editingLessons.splice(lesson_id, 1);
+								updateEditingLessons();
+							}}
+						>
+							<Trash className='inline' size='1.4rem' />
+						</Button>
+					</>
+				)}
 			</Card.Header>
 			<div className='flex flex-row py-2 px-9 bg-orange-50 gap-10'>
 				<div className='flex flex-col w-20 text-lg text-left gap-2'>
 					<span className='text-xl text-slate-400'>Начало</span>
 					{editingLessons ? (
 						<input
-							className='border border-black h-9'
+							className={`border h-9 ${(overlap || !lesson.start_at) && 'ring-2 ring-red-400'}`}
 							value={lesson.start_at}
 							onChange={(e) => {
 								lesson.start_at = e.target.value;
@@ -116,11 +143,13 @@ const LessonCard = ({
 								lesson.start_sound = selected[0];
 								updateEditingLessons();
 							}}
-							options={['Будние']}
-							placeholder='выберите звук'
+							options={soundNameList}
+							placeholder='отсутствует'
 						/>
 					) : (
-						lesson.start_sound
+						lesson.start_sound || (
+							<label className='text-gray-500'>отсутствует</label>
+						)
 					)}
 				</div>
 			</div>
@@ -129,7 +158,7 @@ const LessonCard = ({
 					<span className='text-xl text-slate-400'>Конец</span>
 					{editingLessons ? (
 						<input
-							className='border border-black h-9'
+							className={`border h-9 ${(overlap || !lesson.end_at) && 'ring-2 ring-red-400'}`}
 							value={lesson.end_at}
 							disabled={!editingLessons}
 							onChange={(e) => {
@@ -155,11 +184,13 @@ const LessonCard = ({
 								lesson.end_sound = selected[0];
 								updateEditingLessons();
 							}}
-							options={['Будние']}
-							placeholder='выберите звук'
+							options={soundNameList}
+							placeholder='отсутствует'
 						/>
 					) : (
-						lesson.end_sound
+						lesson.end_sound || (
+							<label className='text-gray-500'>отсутствует</label>
+						)
 					)}
 				</div>
 			</div>
@@ -173,8 +204,6 @@ const BellsPage = () => {
 		queryFn: () => getBellsSettings(),
 		queryKey: ['bells']
 	});
-
-	console.log('rendered');
 
 	const queryClient = useQueryClient();
 
@@ -216,6 +245,35 @@ const BellsPage = () => {
 		setEditingLessons(undefined);
 		queryClient.invalidateQueries('bells');
 	};
+	const addLesson = () => {
+		editingLessons.push({
+			enabled: true,
+			start_at: '',
+			end_at: ''
+		});
+		updateEditingLessons();
+	};
+
+	const displayLessons = editingLessons || lessonList;
+
+	let hasInvalids = false;
+	const displayBreaks: number[] = displayLessons.map((lesson, lesson_id) => {
+		if (!lesson.start_at || !lesson.end_at) {
+			hasInvalids = true;
+			return null;
+		}
+
+		if (countMinutes(lesson.end_at) - countMinutes(lesson.start_at) <= 0)
+			hasInvalids = true;
+		
+		if (lesson_id === 0) return null;
+
+		const res =
+			countMinutes(lesson.start_at) -
+			countMinutes(displayLessons[lesson_id - 1].end_at);
+		if (res <= 0) hasInvalids = true;
+		return res;
+	});
 
 	return (
 		<BellsContext.Provider
@@ -261,7 +319,7 @@ const BellsPage = () => {
 									onClick={() => saveEditing.mutate()}
 									variant='primary'
 									className='flex flex-row items-center gap-2'
-									disabled={saveEditing.isPending}
+									disabled={saveEditing.isPending || hasInvalids}
 								>
 									{saveEditing.isPending ? (
 										<Spinner size='sm' />
@@ -283,20 +341,43 @@ const BellsPage = () => {
 					</div>
 				</div>
 				<div className='flex flex-col gap-1 pr-2 overflow-y-auto h-full'>
-					{lessonList.map((lesson, lesson_id) => (
-						<div key={lesson_id}>
-							{lesson_id !== 0 && (
-								<div className='py-1 mb-1 px-8 text-gray-400 border-b-4 border-dotted text-lg'>
-									Перемена
-									<span className='ml-3 text-slate-500 font-medium'>
-										15 мин
-									</span>
-								</div>
-							)}
-							<LessonCard lesson={lesson} lesson_id={lesson_id} />
-						</div>
-					))}
+					{displayLessons.map((lesson, lesson_id) => {
+						const lessonBreak = displayBreaks[lesson_id];
+						const overlap =
+							lessonBreak !== null && editingLessons && lessonBreak <= 0;
+						return (
+							<div key={lesson_id}>
+								{lesson_id !== 0 && (
+									<div className='flex flex-row gap-3 py-1 mb-1 px-8 text-gray-400 border-b-4 border-dotted text-lg'>
+										Перемена
+										<span
+											className={`text-slate-500 font-medium ${
+												overlap && 'text-red-500'
+											}`}
+										>
+											{lessonBreak !== null && <>{lessonBreak} мин</>}
+										</span>
+										{overlap && (
+											<i className='text-red-500'>пересечение времени уроков</i>
+										)}
+									</div>
+								)}
+								<LessonCard lesson={lesson} lesson_id={lesson_id} />
+							</div>
+						);
+					})}
 				</div>
+				{editingLessons && (
+					<div className='flex flex-row mb-3 p-3'>
+						<Button
+							onClick={addLesson}
+							variant='primary'
+							className='ml-auto flex flex-row items-center gap-2'
+						>
+							<Plus size='1.5rem' /> Добавить урок
+						</Button>
+					</div>
+				)}
 			</div>
 		</BellsContext.Provider>
 

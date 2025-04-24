@@ -3,9 +3,9 @@ import api from '@/api';
 export interface Lesson {
 	enabled: boolean;
 	start_at: string;
-	start_sound: string;
+	start_sound?: string;
 	end_at: string;
-	end_sound: string;
+	end_sound?: string;
 }
 
 export interface LessonWeekdays {

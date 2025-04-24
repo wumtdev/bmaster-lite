@@ -8,8 +8,13 @@ export function humanFileSize(size) {
 	return +((size / Math.pow(1024, i)).toFixed(2)) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
 }
 
-const formatDurationMSS = (totalSeconds: number): string => {
+export const formatDurationMSS = (totalSeconds: number): string => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  return `${minutes}:${String(Math.floor(seconds)).padStart(2, '0')}`;
+};
+
+export const countMinutes = (time: string) => {
+	const [hours, minutes] = time.split(':').map(Number);
+	return hours * 60 + minutes;
 };

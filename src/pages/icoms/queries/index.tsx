@@ -34,6 +34,8 @@ export function IcomQuery({
 		}
 	});
 
+	
+
 	switch (queryInfo.type) {
 		case 'sounds.sound':
 			let query = queryInfo as icoms.SoundQueryInfo;
