@@ -8,6 +8,12 @@ export enum QueryStatus {
 	Cancelled = 'cancelled'
 }
 
+export interface QueryAuthor {
+	type: string;
+	name: string;
+	label: string;
+}
+
 export interface QueryInfo {
 	id: string;
 	type: string;
@@ -16,6 +22,7 @@ export interface QueryInfo {
 	force: boolean;
 	duration?: number;
 	status: QueryStatus;
+	author?: QueryAuthor;
 }
 
 export interface SoundQueryInfo extends QueryInfo {

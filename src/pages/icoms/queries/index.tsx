@@ -5,8 +5,19 @@ import {
 	Trash,
 	MusicNote,
 	PlayFill,
-	ExclamationCircleFill} from 'react-bootstrap-icons';
+	ExclamationCircleFill,
+	Gear,
+	Wrench,
+	PersonCircle,
+	GearFill} from 'react-bootstrap-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+
+const authorTypeIcons = {
+	'service': <GearFill />,
+	'root': <Wrench />,
+	'account': <PersonCircle />
+}
 
 export function IcomQuery({
 	queryInfo,
@@ -18,7 +29,6 @@ export function IcomQuery({
 	const queryClient = useQueryClient();
 	const cancelQuery = useMutation({
 		mutationFn: () => icoms.cancelQuery(queryInfo.id),
-		mutationKey: ['cancelQuery', queryInfo.id],
 		onSuccess: () => {
 			queryClient.invalidateQueries('icoms');
 		}
@@ -30,7 +40,7 @@ export function IcomQuery({
 			return (
 				<div
 					key={query.id}
-					className={`flex items-center rounded-lg border ${
+					className={`flex rounded-lg items-center border ${
 						query.status == icoms.QueryStatus.Playing &&
 						'border-green-500 bg-green-50'
 					}`}
@@ -68,13 +78,24 @@ export function IcomQuery({
 								{query.sound_name}
 							</span>
 						</div>
+
+						{
+							query.author
+							&& <div className='flex flex-row items-center mt-2 gap-2 text-gray-500'>
+								{authorTypeIcons[query.author.type]}
+								{query.author.name}
+								<span className='text-gray-400 text-xs'>
+									{query.author.label}
+								</span>
+							</div>
+						}
 					</div>
 
 					{/* Кнопка удаления */}
 					<button
 						onClick={() => cancelQuery.mutate()}
 						disabled={cancelQuery.isPending}
-						className='w-6 h-20 bg-red-600 text-white flex items-center justify-center rounded-r-lg hover:bg-red-700'
+						className='w-6 h-28 bg-red-600 text-white flex items-center justify-center rounded-r-lg hover:bg-red-700'
 					>
 						{
 							cancelQuery.isPending 
