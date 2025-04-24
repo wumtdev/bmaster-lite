@@ -6,13 +6,16 @@ import {
 	ExclamationTriangle,
 	Laptop,
 	MusicNote,
+	Plus,
 	PlusCircle,
-	Speaker
+	Speaker,
+	Trash
 } from 'react-bootstrap-icons';
 import { humanFileSize } from '@/utils';
 import AudioPlayer from '@/components/AudioPlayer';
 import { BASE_URL } from '@/api';
 import { playSound } from '@/api/queries';
+import FileUploadButton from '@/components/FileUploadButton';
 
 const SoundsPage = () => {
 	const soundsQuery = useQuery({
@@ -25,7 +28,7 @@ const SoundsPage = () => {
 
 	const queryClient = useQueryClient();
 
-	const sendSound = useMutation({
+	const playSoundMut = useMutation({
 		mutationFn: (sound_name: string) =>
 			playSound({
 				icom_id: 'main',
@@ -36,15 +39,35 @@ const SoundsPage = () => {
 		onSuccess: () => queryClient.invalidateQueries('icoms')
 	});
 
-	const soundList = soundsQuery.data;
-	let selected;
+	const uploadSoundMut = useMutation({
+		mutationFn: (file: File) => sounds.uploadSound(file),
+		onSuccess: () => queryClient.invalidateQueries('sounds')
+	});
+
+	const deleteSoundMut = useMutation({
+		mutationFn: (sound_name: string) => sounds.deleteSound(sound_name),
+		onSuccess: () => queryClient.invalidateQueries('sounds'),
+		onError: () => queryClient.invalidateQueries('sounds')
+	});
+
+	const soundList = soundsQuery.data || [];
+	const soundMap = {};
+	for (const sound of soundList) {
+		soundMap[sound.name] = sound;
+	}
+
+	let selectedSound: sounds.SoundInfo | undefined;
+	if (selectedSoundName) {
+		selectedSound = soundMap[selectedSoundName];
+		if (!selectedSound) setSelectedSoundName(undefined);
+	}
 
 	return (
 		<div className='mx-auto flex flex-col'>
 			<h1 className='text-4xl ml-8 font-semibold text-slate-500 mb-6'>Звуки</h1>
 			<Card className='flex flex-row h-[50rem]'>
 				<div className='flex flex-col w-2/3 border-r p-4'>
-					<div className='grid grid-cols-2 gap-4'>
+					<div className='grid mb-4 p-4 grid-cols-2 gap-4 overflow-y-auto'>
 						{soundList ? (
 							soundList.map((soundInfo) => (
 								<div
@@ -56,21 +79,32 @@ const SoundsPage = () => {
 									}`}
 									onClick={() => setSelectedSoundName(soundInfo.name)}
 								>
-									<MusicNote className='text-blue-500 mr-3' />
+									{soundInfo.sound_specs ? (
+										<MusicNote size='1.5rem' className='text-blue-500 mr-3' />
+									) : (
+										<ExclamationTriangle
+											size='1.5rem'
+											className='text-orange-700 mr-3'
+										/>
+									)}
 
 									<div className='flex flex-col'>
 										<div className='font-medium text-gray-800'>
 											{soundInfo.name}
 										</div>
 										<div className='text-sm text-gray-500 flex items-center gap-2'>
-											<span>0:00</span>
-											<span>•</span>
+											{soundInfo.sound_specs && (
+												<>
+													<span>0:00</span>
+													<span>•</span>
+												</>
+											)}
 											<span>{humanFileSize(soundInfo.size)}</span>
 										</div>
 									</div>
 
-									<button className='ml-2 p-2 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'>
-										<PlusCircle className='text-green-500' size={20} />
+									<button className='ml-auto p-2 hover:bg-gray-200 rounded-lg' onClick={() => deleteSoundMut.mutate(soundInfo.name)}>
+										<Trash className='text-red-500' size={20} />
 									</button>
 								</div>
 							))
@@ -80,12 +114,20 @@ const SoundsPage = () => {
 							</div>
 						)}
 					</div>
+					<div className='mt-auto flex flex-row '>
+						<FileUploadButton
+							className='ml-auto flex flex-row items-center gap-2'
+							handleFile={(file) => uploadSoundMut.mutate(file)}
+						>
+							Загрузить звук <Plus size='1.7rem' />
+						</FileUploadButton>
+					</div>
 				</div>
 				<div className='flex flex-col gap-2 w-1/3 p-4'>
-					{selectedSoundName ? (
+					{selectedSound ? (
 						<>
 							<h1 className='text-xl font-medium text-slate-600 mb-4'>
-								{selectedSoundName}
+								{selectedSound.name}
 							</h1>
 							<div className='mt-auto flex flex-col border bg-orange-50 p-2.5'>
 								<span className='flex flex-row items-center gap-3 justify-start ml-1 mb-3 font-medium'>
@@ -93,20 +135,32 @@ const SoundsPage = () => {
 								</span>
 								<AudioPlayer
 									className='w-full'
-									src={`${BASE_URL}/api/sounds/file/${selectedSoundName}`}
+									src={`${BASE_URL}/api/sounds/file/${selectedSound.name}`}
 								/>
 							</div>
-							<div className='flex flex-col border bg-orange-50 p-2.5'>
-								<span className='flex flex-row items-center gap-3 justify-start ml-1 mb-3 font-medium'>
+							<div className='flex flex-col border bg-orange-50 gap-3 p-2.5'>
+								<span className='flex flex-row items-center gap-3 justify-start ml-1 font-medium'>
 									<Speaker size='1.2rem' /> Динамики школы
 								</span>
-								<Button
-									disabled={sendSound.isPending}
-									onClick={() => sendSound.mutate(selectedSoundName)}
-									variant='outline-success'
-								>
-									Воспроизвести
-								</Button>
+								{selectedSound.sound_specs ? (
+									<Button
+										disabled={
+											!selectedSound.sound_specs || playSoundMut.isPending
+										}
+										onClick={() => playSoundMut.mutate(selectedSoundName)}
+										variant='outline-success'
+									>
+										Воспроизвести
+									</Button>
+								) : (
+									<span className='text-orange-700 text-center'>
+										<ExclamationTriangle
+											size='1.3rem'
+											className='inline mr-2'
+										/>
+										Неизвестный формат
+									</span>
+								)}
 							</div>
 						</>
 					) : (
