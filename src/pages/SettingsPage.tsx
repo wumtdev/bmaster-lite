@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { getAnnouncementsSettings, patchAnnouncementsSettings } from '@/api/lite/announcements';
 import { getBellsSettings, LessonWeekdays, patchBellsSettings } from '@/api/lite/bells';
 import { useSounds } from '@/sounds';

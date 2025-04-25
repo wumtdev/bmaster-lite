@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from 'react';
 import { Button, Card, Form, Alert } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';

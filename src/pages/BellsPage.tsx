@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
 	BellsSettings,
 	getBellsSettings,

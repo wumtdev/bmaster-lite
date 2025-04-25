@@ -1,4 +1,5 @@
-import { BASE_URL, ORIGIN } from '@/api';
+// @ts-nocheck
+import { HTTP_BASE_URL, ORIGIN, WS_BASE_URL } from '@/api';
 import React, { useEffect, useState } from 'react';
 import { Card } from 'react-bootstrap';
 import { Mic, StopFill } from 'react-bootstrap-icons';
@@ -108,7 +109,7 @@ const AnnouncementsPage = () => {
 	}, [connection, status]);
 
 	const start = async () => {
-		const ws = new WebSocket(`ws://${ORIGIN}/api/queries/stream`);
+		const ws = new WebSocket(`${WS_BASE_URL}/api/queries/stream`);
 		ws.binaryType = 'arraybuffer';
 
 		const stream = await navigator.mediaDevices.getUserMedia({

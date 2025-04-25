@@ -73,6 +73,9 @@ export default function MainPage() {
 			break;
 	}
 
+	console.log('H1', localUser);
+	
+
 	return (
 		<LocalUserProvider localUser={localUser}>
 			<div className='flex flex-col relative w-screen h-screen overflow-y-auto'>

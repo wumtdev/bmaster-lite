@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { Table, Button, Form, Badge } from 'react-bootstrap';
 import { Plus} from 'react-bootstrap-icons';

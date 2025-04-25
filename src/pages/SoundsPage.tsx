@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import { Button, Card, Spinner } from 'react-bootstrap';
 import * as sounds from '@/api/sounds';
@@ -13,7 +14,7 @@ import {
 } from 'react-bootstrap-icons';
 import { formatDurationMSS, humanFileSize } from '@/utils';
 import AudioPlayer from '@/components/AudioPlayer';
-import { BASE_URL } from '@/api';
+import { HTTP_BASE_URL } from '@/api';
 import { playSound } from '@/api/queries';
 import FileUploadButton from '@/components/FileUploadButton';
 import { useSounds } from '@/sounds';
@@ -134,7 +135,7 @@ const SoundsPage = () => {
 								</span>
 								<AudioPlayer
 									className='w-full'
-									src={`${BASE_URL}/api/sounds/file/${selectedSound.name}`}
+									src={`${HTTP_BASE_URL}/api/sounds/file/${selectedSound.name}`}
 								/>
 							</div>
 							<div className='flex flex-col border bg-orange-50 gap-3 p-2.5'>

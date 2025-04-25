@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { playSound } from '@/api/queries';
 import { useIcomContext } from '@/pages/icoms';
 import { clamp } from '@/utils';

@@ -5,6 +5,8 @@ import LoginPage from '@/LoginPage';
 function App() {
   const isAuthed_ = isAuthed();
 
+  console.log('Authed', isAuthed_)
+
   return isAuthed_ ?
     (<MainPage />)
     :

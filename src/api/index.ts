@@ -7,11 +7,12 @@ const apiErrorSchema = z.object({
 
 type ApiError = z.infer<typeof apiErrorSchema>;
 
-export const ORIGIN = 'localhost:8000'
-export const BASE_URL = `http://${ORIGIN}`
+export const ORIGIN = ''
+export const HTTP_BASE_URL = ORIGIN === '' ? '' : `http://${ORIGIN}`;
+export const WS_BASE_URL = ORIGIN === '' ? '' : `ws://${ORIGIN}`;
 
 const api = axios.create({
-	baseURL: `${BASE_URL}/api` // Replace with your backend base URL
+	baseURL: `${HTTP_BASE_URL}/api` // Replace with your backend base URL
 });
 
 api.interceptors.request.use((config) => {
