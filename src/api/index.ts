@@ -7,7 +7,7 @@ const apiErrorSchema = z.object({
 
 type ApiError = z.infer<typeof apiErrorSchema>;
 
-export const ORIGIN = ''
+export const ORIGIN = '';
 export const HTTP_BASE_URL = ORIGIN === '' ? '' : `http://${ORIGIN}`;
 export const WS_BASE_URL = ORIGIN === '' ? '' : `ws://${ORIGIN}`;
 

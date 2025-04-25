@@ -111,7 +111,7 @@ const AnnouncementsPage = () => {
 	const start = async () => {
 		const ws = new WebSocket(`${WS_BASE_URL}/api/queries/stream`);
 		ws.binaryType = 'arraybuffer';
-
+		
 		const stream = await navigator.mediaDevices.getUserMedia({
 			audio: {
 				sampleRate: RATE,
