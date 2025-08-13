@@ -1,4 +1,5 @@
 // @ts-nocheck
+import React, { createContext, useContext, useState } from 'react';
 import {
 	BellsSettings,
 	getBellsSettings,
@@ -15,13 +16,14 @@ import {
 	useQueryClient,
 	UseQueryResult
 } from '@tanstack/react-query';
-import React, {
-	createContext,
-	HTMLAttributes,
-	useContext,
-	useState
-} from 'react';
-import { Button, Card, Form, Spinner } from 'react-bootstrap';
+import {
+	Button,
+	Card,
+	Form,
+	Spinner,
+	OverlayTrigger,
+	Tooltip
+} from 'react-bootstrap';
 import {
 	Floppy,
 	PencilSquare,
@@ -31,6 +33,7 @@ import {
 } from 'react-bootstrap-icons';
 import { Typeahead } from 'react-bootstrap-typeahead';
 
+/* ---------------- Context ---------------- */
 export interface BellsContextData {
 	bellsSettingsQuery: UseQueryResult<BellsSettings>;
 	bellsSettings: BellsSettings;
@@ -38,49 +41,54 @@ export interface BellsContextData {
 	setEditingLessons: (lessons: Lesson[] | undefined) => void;
 	updateEditingLessons: () => void;
 }
-
 const BellsContext = createContext<BellsContextData | undefined>(undefined);
-
 export function useBellsContext(): BellsContextData {
 	const data = useContext(BellsContext);
 	if (!data) throw Error('Not in bells context');
 	return data;
 }
 
+/* ---------------- LessonCard ---------------- */
 const LessonCard = ({
 	lesson_id,
 	lesson,
 	...attrs
-}: { lesson_id: number; lesson: Lesson } & HTMLAttributes<HTMLDivElement>) => {
+}: {
+	lesson_id: number;
+	lesson: Lesson;
+} & React.HTMLAttributes<HTMLDivElement>) => {
 	const queryClient = useQueryClient();
 
 	const switchEnabled = useMutation({
 		mutationFn: (enabled: boolean) => patchLesson(lesson_id, { enabled }),
-		mutationKey: ['bells.lessons.switchEnabled'],
-		onSuccess: () => queryClient.invalidateQueries('bells')
+		mutationKey: ['bells.lessons.switchEnabled', lesson_id],
+		onSuccess: () => queryClient.invalidateQueries(['bells'])
 	});
-	
-	const {soundNameList} = useSounds();
 
-	const {
-		editingLessons,
-		bellsSettings,
-		setEditingLessons,
-		updateEditingLessons
-	} = useBellsContext();
+	const { soundNameList } = useSounds();
+
+	const { editingLessons, bellsSettings, setEditingLessons } =
+		useBellsContext();
 
 	let disabledReason = undefined;
 	if (!editingLessons) {
 		if (!lesson.enabled) disabledReason = 'звонки урока выключены';
 		else if (!bellsSettings.enabled) disabledReason = 'все звонки выключены';
-		// TODO: Add weekday reason
 	}
 
-	const overlap = lesson.start_at && lesson.end_at && countMinutes(lesson.end_at) - countMinutes(lesson.start_at) <= 0;
+	const overlap =
+		lesson.start_at &&
+		lesson.end_at &&
+		countMinutes(lesson.end_at) - countMinutes(lesson.start_at) <= 0;
+
+	const onDelete = () => {
+		if (!editingLessons) return;
+		setEditingLessons(editingLessons.filter((_, i) => i !== lesson_id));
+	};
 
 	return (
-		<Card className='flex flex-col' {...attrs}>
-			<Card.Header className='flex flex-row gap-2.5 items-center text-2xl text-slate-500 p-0 px-4 h-12'>
+		<Card className='flex flex-col shadow-sm' {...attrs}>
+			<Card.Header className='flex items-center gap-3 p-3 bg-white'>
 				{!editingLessons && (
 					<Form.Check
 						type='switch'
@@ -89,60 +97,75 @@ const LessonCard = ({
 						checked={lesson.enabled}
 					/>
 				)}
-				<div>
-					<span className='font-medium'>{lesson_id + 1}</span> урок
+
+				<div className='flex items-baseline gap-2'>
+					<span className='text-lg font-semibold'>{lesson_id + 1}</span>
+					<span className='text-sm text-slate-500'>урок</span>
 				</div>
+
 				{disabledReason && (
-					<i className='ml-4 text-lg text-slate-400'>
+					<div className='ml-3 text-sm text-slate-400'>
 						Выключен: {disabledReason}
-					</i>
+					</div>
 				)}
-				{editingLessons && (
-					<>
-						{overlap && <i className='text-red-500 text-lg'>неправильный порядок начала и конца урока</i>}
-						<Button
-							variant='danger'
-							className='ml-auto'
-							onClick={() => {
-								editingLessons.splice(lesson_id, 1);
-								updateEditingLessons();
-							}}
+
+				<div className='ml-auto flex items-center gap-2'>
+					{editingLessons && overlap && (
+						<div className='text-red-600 text-sm'>
+							неправильный порядок времени
+						</div>
+					)}
+					{editingLessons && (
+						<OverlayTrigger
+							placement='top'
+							overlay={<Tooltip>Удалить урок</Tooltip>}
 						>
-							<Trash className='inline' size='1.4rem' />
-						</Button>
-					</>
-				)}
-			</Card.Header>
-			<div className='flex flex-row py-2 px-9 bg-orange-50 gap-10'>
-				<div className='flex flex-col w-20 text-lg text-left gap-2'>
-					<span className='text-xl text-slate-400'>Начало</span>
-					{editingLessons ? (
-						<input
-							className={`border h-9 ${(overlap || !lesson.start_at) && 'ring-2 ring-red-400'}`}
-							value={lesson.start_at}
-							onChange={(e) => {
-								lesson.start_at = e.target.value;
-								updateEditingLessons();
-							}}
-							disabled={!editingLessons}
-							type='time'
-						/>
-					) : (
-						lesson.start_at
+							<Button variant='outline-danger' size='sm' onClick={onDelete}>
+								<Trash size='1rem' />
+							</Button>
+						</OverlayTrigger>
 					)}
 				</div>
-				<div className='flex flex-col text-lg text-left gap-2'>
-					<span className='text-xl text-slate-400'>Звук</span>
+			</Card.Header>
+
+			<div className='flex flex-col sm:flex-row gap-4 p-4 bg-blue-50'>
+				<div className='flex flex-col w-full sm:w-40 gap-2'>
+					<span className='text-sm text-slate-400'>Начало</span>
+					{editingLessons ? (
+						<input
+							type='time'
+							value={lesson.start_at}
+							onChange={(e) => {
+								const updated = (editingLessons || []).map((l, idx) =>
+									idx === lesson_id ? { ...l, start_at: e.target.value } : l
+								);
+								setEditingLessons(updated);
+							}}
+							className={`px-2 py-1 border rounded ${
+								!lesson.start_at || overlap
+									? 'ring-2 ring-red-300'
+									: 'border-gray-200'
+							}`}
+						/>
+					) : (
+						<div className='text-lg'>{lesson.start_at}</div>
+					)}
+				</div>
+
+				<div className='flex-1 flex flex-col gap-2'>
+					<span className='text-sm text-slate-400'>Звук (начало)</span>
 					{editingLessons ? (
 						<Typeahead
-							className='border-none text-xs'
+							className='border-none'
 							disabled={!editingLessons}
 							emptyLabel='не найдено'
 							selected={lesson.start_sound ? [lesson.start_sound] : []}
 							onChange={(selected) => {
-								// @ts-ignore
-								lesson.start_sound = selected[0];
-								updateEditingLessons();
+								const val = selected[0] as string | undefined;
+								const updated = (editingLessons || []).map((l, idx) =>
+									idx === lesson_id ? { ...l, start_sound: val } : l
+								);
+								setEditingLessons(updated);
 							}}
 							options={soundNameList}
 							placeholder='отсутствует'
@@ -154,36 +177,45 @@ const LessonCard = ({
 					)}
 				</div>
 			</div>
-			<div className='flex flex-row py-2 px-9 bg-blue-50 gap-10'>
-				<div className='flex flex-col w-20 text-lg text-left gap-2'>
-					<span className='text-xl text-slate-400'>Конец</span>
+
+			<div className='flex flex-col sm:flex-row gap-4 p-4 bg-green-50'>
+				<div className='flex flex-col w-full sm:w-40 gap-2'>
+					<span className='text-sm text-slate-400'>Конец</span>
 					{editingLessons ? (
 						<input
-							className={`border h-9 ${(overlap || !lesson.end_at) && 'ring-2 ring-red-400'}`}
-							value={lesson.end_at}
-							disabled={!editingLessons}
-							onChange={(e) => {
-								lesson.end_at = e.target.value;
-								updateEditingLessons();
-							}}
 							type='time'
+							value={lesson.end_at}
+							onChange={(e) => {
+								const updated = (editingLessons || []).map((l, idx) =>
+									idx === lesson_id ? { ...l, end_at: e.target.value } : l
+								);
+								setEditingLessons(updated);
+							}}
+							className={`px-2 py-1 border rounded ${
+								!lesson.end_at || overlap
+									? 'ring-2 ring-red-300'
+									: 'border-gray-200'
+							}`}
 						/>
 					) : (
-						lesson.end_at
+						<div className='text-lg'>{lesson.end_at}</div>
 					)}
 				</div>
-				<div className='flex flex-col text-lg text-left gap-2'>
-					<span className='text-xl text-slate-400'>Звук</span>
+
+				<div className='flex-1 flex flex-col gap-2'>
+					<span className='text-sm text-slate-400'>Звук (конец)</span>
 					{editingLessons ? (
 						<Typeahead
-							className='border-none text-xs'
+							className='border-none'
 							disabled={!editingLessons}
 							emptyLabel='не найдено'
 							selected={lesson.end_sound ? [lesson.end_sound] : []}
 							onChange={(selected) => {
-								// @ts-ignore
-								lesson.end_sound = selected[0];
-								updateEditingLessons();
+								const val = selected[0] as string | undefined;
+								const updated = (editingLessons || []).map((l, idx) =>
+									idx === lesson_id ? { ...l, end_sound: val } : l
+								);
+								setEditingLessons(updated);
 							}}
 							options={soundNameList}
 							placeholder='отсутствует'
@@ -200,7 +232,6 @@ const LessonCard = ({
 };
 
 const BellsPage = () => {
-	// const weekdays = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
 	const bellsSettingsQuery = useQuery({
 		queryFn: () => getBellsSettings(),
 		queryKey: ['bells']
@@ -213,68 +244,102 @@ const BellsPage = () => {
 	);
 
 	const updateEditingLessons = () =>
-		setEditingLessons(Array.from(editingLessons));
+		setEditingLessons((prev) => (prev ? Array.from(prev) : undefined));
 
 	const saveEditing = useMutation({
-		mutationFn: () =>
-			patchBellsSettings({
-				lessons: editingLessons
-			}),
+		mutationFn: () => patchBellsSettings({ lessons: editingLessons }),
 		mutationKey: ['bells', 'lessons', 'save'],
 		onSuccess: () => {
 			setEditingLessons(undefined);
-			queryClient.invalidateQueries('bells');
+			queryClient.invalidateQueries(['bells']);
 		}
 	});
 
 	const switchBells = useMutation({
 		mutationFn: (enabled: boolean) => patchBellsSettings({ enabled }),
 		mutationKey: ['bells.enabled'],
-		onSuccess: () => queryClient.invalidateQueries('bells')
+		onSuccess: () => queryClient.invalidateQueries(['bells'])
 	});
 
 	if (bellsSettingsQuery.isLoading)
 		return <ForegroundNotification>Загрузка...</ForegroundNotification>;
-
 	if (!bellsSettingsQuery.data)
 		return <ForegroundNotification>Ошибка</ForegroundNotification>;
 
 	const bellsSettings = bellsSettingsQuery.data;
-	const lessonList = bellsSettings.lessons;
-	const startEditing = () => setEditingLessons(lessonList);
+	const lessonList = bellsSettings.lessons || [];
+
+	const startEditing = () =>
+		setEditingLessons(lessonList.map((l) => ({ ...l })));
 	const cancelEditing = () => {
 		setEditingLessons(undefined);
-		queryClient.invalidateQueries('bells');
+		queryClient.invalidateQueries(['bells']);
 	};
 	const addLesson = () => {
-		editingLessons.push({
-			enabled: true,
-			start_at: '',
-			end_at: ''
-		});
-		updateEditingLessons();
+		setEditingLessons((prev) => [
+			...(prev || lessonList.map((l) => ({ ...l }))),
+			{
+				enabled: true,
+				start_at: '',
+				start_sound: null,
+				end_at: '',
+				end_sound: null
+			}
+		]);
 	};
 
 	const displayLessons = editingLessons || lessonList;
 
+	// вычисляем рабочее время из существующих данных (начало первого enabled и конец последнего enabled)
+	const enabledLessons = (lessonList || []).filter((l) => l.enabled);
+	let workTime: { start: string; end: string } | null = null;
+	if (enabledLessons.length > 0) {
+		const toMinutes = (t: string) => {
+			const [h, m] = t.split(':').map(Number);
+			return h * 60 + m;
+		};
+		const sortedByStart = [...enabledLessons].sort(
+			(a, b) => toMinutes(a.start_at) - toMinutes(b.start_at)
+		);
+		const sortedByEnd = [...enabledLessons].sort(
+			(a, b) => toMinutes(a.end_at) - toMinutes(b.end_at)
+		);
+		workTime = {
+			start: sortedByStart[0].start_at,
+			end: sortedByEnd[sortedByEnd.length - 1].end_at
+		};
+	}
+
+	const isOutsideWorkTime = (time: string) => {
+		if (!workTime) return false;
+		const toMinutes = (t: string) => {
+			const [h, m] = t.split(':').map(Number);
+			return h * 60 + m;
+		};
+		const t = toMinutes(time);
+		return t < toMinutes(workTime.start) || t > toMinutes(workTime.end);
+	};
+
+	// Валидация: пустые/перекрывающиеся времена
 	let hasInvalids = false;
-	const displayBreaks: number[] = displayLessons.map((lesson, lesson_id) => {
-		if (!lesson.start_at || !lesson.end_at) {
-			hasInvalids = true;
-			return null;
+	const displayBreaks: (number | null)[] = displayLessons.map(
+		(lesson, lesson_id) => {
+			if (!lesson.start_at || !lesson.end_at) {
+				hasInvalids = true;
+				return null;
+			}
+			if (countMinutes(lesson.end_at) - countMinutes(lesson.start_at) <= 0) {
+				hasInvalids = true;
+			}
+			if (lesson_id === 0) return null;
+			const res =
+				countMinutes(lesson.start_at) -
+				countMinutes(displayLessons[lesson_id - 1].end_at);
+			if (res <= 0) hasInvalids = true;
+			return res;
 		}
-
-		if (countMinutes(lesson.end_at) - countMinutes(lesson.start_at) <= 0)
-			hasInvalids = true;
-		
-		if (lesson_id === 0) return null;
-
-		const res =
-			countMinutes(lesson.start_at) -
-			countMinutes(displayLessons[lesson_id - 1].end_at);
-		if (res <= 0) hasInvalids = true;
-		return res;
-	});
+	);
+	console.log(lessonList);
 
 	return (
 		<BellsContext.Provider
@@ -286,144 +351,221 @@ const BellsPage = () => {
 				updateEditingLessons
 			}}
 		>
-			<div className='mx-auto flex flex-col w-[50rem]'>
-				<h1 className='text-4xl ml-8 font-semibold text-slate-500 mb-6'>
+			<div className='mx-auto max-w-7xl p-6'>
+				<h1 className='text-3xl font-semibold text-slate-600 mb-4'>
 					Расписание звонков
 				</h1>
-				<div className='flex flex-row mb-3 p-3'>
-					<div className='flex flex-row items-center text-2xl gap-2 font-medium text-slate-600'>
-						{editingLessons ? (
-							<>Режим редактирования</>
-						) : (
-							<>
-								<Form.Check
-									disabled={switchBells.isPending}
-									checked={bellsSettings.enabled}
-									onChange={(e) => switchBells.mutate(e.target.checked)}
-									type='switch'
-								/>
-								Звонки {bellsSettings.enabled ? 'включены' : 'выключены'}
-							</>
-						)}
-					</div>
-					<div className='ml-auto flex flex-row items-center gap-2'>
-						{editingLessons ? (
-							<>
-								<Button
-									onClick={cancelEditing}
-									variant='danger'
-									className='flex flex-row items-center gap-2'
-								>
-									<XOctagon size='1.2rem' /> Отменить
-								</Button>
-								<Button
-									onClick={() => saveEditing.mutate()}
-									variant='primary'
-									className='flex flex-row items-center gap-2'
-									disabled={saveEditing.isPending || hasInvalids}
-								>
-									{saveEditing.isPending ? (
-										<Spinner size='sm' />
+
+				<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+					{/* Левая часть — список уроков */}
+					<div className='lg:col-span-2'>
+						<Card className='shadow rounded-lg overflow-hidden'>
+							<div className='flex items-center justify-between p-4 border-b bg-white'>
+								<div className='flex items-center gap-3'>
+									{editingLessons ? (
+										<div className='text-lg font-medium text-slate-600'>
+											Режим редактирования
+										</div>
 									) : (
-										<Floppy size='1.2rem' />
-									)}{' '}
-									Сохранить
-								</Button>
-							</>
-						) : (
-							<Button
-								onClick={startEditing}
-								variant='primary'
-								className='flex flex-row items-center gap-2'
-							>
-								<PencilSquare size='1.2rem' /> Изменить
-							</Button>
-						)}
+										<div className='flex items-center gap-3 text-slate-600'>
+											<Form.Check
+												disabled={switchBells.isPending}
+												checked={bellsSettings.enabled}
+												onChange={(e) => switchBells.mutate(e.target.checked)}
+												type='switch'
+											/>
+											<div>
+												Звонки{' '}
+												{bellsSettings.enabled ? 'включены' : 'выключены'}
+											</div>
+										</div>
+									)}
+								</div>
+
+								<div className='flex items-center gap-2'>
+									{editingLessons ? (
+										<>
+											<Button
+												variant='outline-danger'
+												onClick={cancelEditing}
+												className='d-flex align-items-center gap-2'
+											>
+												<XOctagon size='1.1rem' /> Отменить
+											</Button>
+											<Button
+												variant='primary'
+												onClick={() => saveEditing.mutate()}
+												disabled={saveEditing.isPending || hasInvalids}
+												className='d-flex align-items-center gap-2'
+											>
+												{saveEditing.isPending ? (
+													<Spinner size='sm' />
+												) : (
+													<Floppy size='1.1rem' />
+												)}{' '}
+												Сохранить
+											</Button>
+										</>
+									) : (
+										<Button
+											variant='primary'
+											onClick={startEditing}
+											className='d-flex align-items-center gap-2'
+										>
+											<PencilSquare size='1.1rem' /> Изменить
+										</Button>
+									)}
+								</div>
+							</div>
+
+							<div className='p-4 space-y-4 max-h-[60vh] overflow-y-auto bg-gray-50'>
+								{displayLessons.length === 0 ? (
+									<div className="text-gray-500 text-center py-8">
+									<div className="flex items-center justify-center space-x-2">
+										<span>В расписании пока нет уроков. Добавьте их, войдя в режим редактирования.</span>
+										<span className="ml-auto text-xl">↑</span>
+									</div>
+									</div>
+
+								) : (
+									displayLessons.map((lesson, lesson_id) => {
+										const lessonBreak = displayBreaks[lesson_id];
+										const outside =
+											isOutsideWorkTime(lesson.start_at) &&
+											isOutsideWorkTime(lesson.end_at);
+										const overlap =
+											lessonBreak !== null &&
+											editingLessons &&
+											lessonBreak <= 0;
+										return (
+											<div key={lesson_id}>
+												{lesson_id !== 0 && (
+													<div className='flex items-center gap-3 py-2 px-3 text-gray-500 border-b border-dotted'>
+														<div className='text-sm'>Перемена</div>
+														<div
+															className={`font-medium ${
+																overlap ? 'text-red-500' : 'text-slate-600'
+															}`}
+														>
+															{lessonBreak !== null
+																? `${lessonBreak} мин`
+																: '—'}
+														</div>
+														{overlap && (
+															<div className='text-red-500 text-sm'>
+																пересечение времени
+															</div>
+														)}
+													</div>
+												)}
+												<div className={`${outside ? 'opacity-70' : ''}`}>
+													<LessonCard lesson={lesson} lesson_id={lesson_id} />
+												</div>
+											</div>
+										);
+									})
+								)}
+							</div>
+
+							{editingLessons && (
+								<div className='p-4 border-t bg-white flex justify-end'>
+									<Button
+										variant='secondary'
+										onClick={addLesson}
+										className='d-flex items-center gap-2'
+									>
+										<Plus /> Добавить урок
+									</Button>
+								</div>
+							)}
+						</Card>
 					</div>
-				</div>
-				<div className='flex flex-col gap-1 pr-2 overflow-y-auto h-full'>
-					{displayLessons.map((lesson, lesson_id) => {
-						const lessonBreak = displayBreaks[lesson_id];
-						const overlap =
-							lessonBreak !== null && editingLessons && lessonBreak <= 0;
-						return (
-							<div key={lesson_id}>
-								{lesson_id !== 0 && (
-									<div className='flex flex-row gap-3 py-1 mb-1 px-8 text-gray-400 border-b-4 border-dotted text-lg'>
-										Перемена
-										<span
-											className={`text-slate-500 font-medium ${
-												overlap && 'text-red-500'
+
+					{/* Правая панель — всякая инфа */}
+					<div>
+						<Card className='shadow rounded-lg overflow-hidden'>
+							<div className='p-4 border-b bg-white'>
+								<div className='text-lg font-medium text-slate-600'>
+									Детали
+								</div>
+							</div>
+
+							<div className='p-4 space-y-4 bg-gray-50'>
+								<div>
+									<div className='text-sm text-slate-500 mb-2'>
+										Рабочее время
+									</div>
+									<div className='text-md font-medium'>
+										{workTime ? `${workTime.start} — ${workTime.end}` : '—'}
+									</div>
+								</div>
+								<hr />
+								<div>
+									<div className='text-sm text-slate-500 mb-2'>
+										Состояние расписания
+									</div>
+									<div className='flex items-center gap-2'>
+										<div
+											className={`px-2 py-1 rounded text-sm font-medium ${
+												bellsSettings.enabled
+													? 'bg-green-50 text-green-700'
+													: 'bg-red-50 text-red-700'
 											}`}
 										>
-											{lessonBreak !== null && <>{lessonBreak} мин</>}
-										</span>
-										{overlap && (
-											<i className='text-red-500'>пересечение времени уроков</i>
-										)}
+											{bellsSettings.enabled ? 'Включено' : 'Выключено'}
+										</div>
+										<div className='text-sm text-gray-500'>
+											({enabledLessons.length} уроков)
+										</div>
 									</div>
-								)}
-								<LessonCard lesson={lesson} lesson_id={lesson_id} />
+								</div>
 							</div>
-						);
-					})}
-				</div>
-				{editingLessons && (
-					<div className='flex flex-row mb-3 p-3'>
-						<Button
-							onClick={addLesson}
-							variant='primary'
-							className='ml-auto flex flex-row items-center gap-2'
-						>
-							<Plus size='1.5rem' /> Добавить урок
-						</Button>
+						</Card>
 					</div>
-				)}
+				</div>
+
+				<style>{`
+          input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 10px;
+            background: transparent;
+          }
+          input[type=range]::-webkit-slider-runnable-track {
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 999px;
+          }
+          input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            margin-top: -6px;
+            width: 22px;
+            height: 22px;
+            background: #2563eb;
+            border-radius: 999px;
+            box-shadow: 0 2px 6px rgba(37,99,235,0.35);
+            border: 3px solid white;
+          }
+          input[type=range]::-moz-range-track {
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 999px;
+          }
+          input[type=range]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            background: #2563eb;
+            border-radius: 999px;
+            border: 3px solid white;
+          }
+
+          /* адаптив: на мобильных - колонки складываются и карточки становятся компактнее */
+          @media (max-width: 1024px) {
+            .max-w-7xl { padding-left: 1rem; padding-right: 1rem; }
+          }
+        `}</style>
 			</div>
 		</BellsContext.Provider>
-
-		// <div className='flex flex-col gap-9'>
-		// 	<div className='flex justify-between gap-4 flex-row'>
-		// 		{weekdays.map((day) => (
-		// 			<div className='flex flex-col'>
-		// 				<div className='p-1 px-2 flex items-end justify-between min-h-8 rounded-t-md border-x-2 border-t-2 border-slate-400 text-xl bg-slate-200 text-slate-500 font-semibold'>
-		// 					<span>{day}</span>
-		// 					<span className='text-sm'>07.09</span>
-		// 				</div>
-		// 				<div className='p-1 rounded-b-md bg-slate-200 border-x-2 border-b-2 border-slate-400'>
-		// 					<Typeahead
-		// 						id='sound-selector'
-		// 						className='border-none w-28 text-xs'
-		// 						emptyLabel='не найдено'
-		// 						onChange={(selected) => console.log(selected)}
-		// 						options={['Будние']}
-		// 						placeholder='Шаблон'
-		// 						size='sm'
-		// 					/>
-		// 				</div>
-		// 			</div>
-		// 		))}
-		// 	</div>
-		// 	<div className='flex flex-col'>
-		// 		<div className='flex ml-2 flex-row'>
-		// 			<div
-		// 				className={`rounded-t-md cursor-pointer text-xl px-2 text-slate-600 ${
-		// 					true ? 'border-t border-x bg-blue-50' : 'hover:bg-gray-200'
-		// 				}`}
-		// 			>
-		// 				Сегодня
-		// 			</div>
-		// 			<div
-		// 				className={`rounded-t-md cursor-pointer text-xl px-2 text-slate-600 ${
-		// 					false ? 'bg-blue-50' : 'hover:bg-gray-200'
-		// 				}`}
-		// 			>
-		// 				Шаблоны
-		// 			</div>
-		// 		</div>
-		// 		<Card className='h-[40rem]'></Card>
-		// 	</div>
-		// </div>
 	);
 };
 

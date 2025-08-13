@@ -7,7 +7,7 @@ const apiErrorSchema = z.object({
 
 type ApiError = z.infer<typeof apiErrorSchema>;
 
-export const ORIGIN = '';
+export const ORIGIN = 'localhost:8000';
 export const HTTP_BASE_URL = ORIGIN === '' ? '' : `http://${ORIGIN}`;
 export const WS_BASE_URL = ORIGIN === '' ? '' : `ws://${ORIGIN}`;
 
@@ -28,13 +28,13 @@ api.interceptors.response.use(
 	(error) => {
 		const res = error.response;
 		if (res) {
-      try {
-        const error = apiErrorSchema.parse(res.data)
-        if (error.detail === 'bmaster.auth.invalid_token') {
-          localStorage.removeItem('bmaster.auth.token');
-          window.location.href = '/';
-        }
-      } catch {}
+			try {
+				const error = apiErrorSchema.parse(res.data);
+				if (error.detail === 'bmaster.auth.invalid_token') {
+					localStorage.removeItem('bmaster.auth.token');
+					window.location.href = '/';
+				}
+			} catch {}
 		}
 		return Promise.reject(error);
 	}
