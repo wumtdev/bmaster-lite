@@ -188,7 +188,7 @@ const SoundsPage = () => {
 			</div>
 
 			<Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-				<Modal.Header closeButton>
+				<Modal.Header closeButton className='border-none'>
 					<Modal.Title>Подтверждение удаления</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
@@ -210,7 +210,7 @@ const SoundsPage = () => {
 						</div>
 					</div>
 				</Modal.Body>
-				<Modal.Footer>
+				<Modal.Footer className='border-none'>
 					<Button
 						variant='secondary'
 						onClick={() => setShowDeleteModal(false)}

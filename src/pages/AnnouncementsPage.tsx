@@ -10,7 +10,7 @@ const WS_BASE_URL =
 			? 'wss://' + window.location.host
 			: 'ws://' + 'localhost:8000'
 		: '';
-const RATE = 8000;
+const RATE = 24000;
 const CHANNELS = 1;
 
 type ConnectionRef = {
@@ -22,241 +22,139 @@ type ConnectionRef = {
 };
 
 export default function AnnouncementsPage(): JSX.Element {
-	const connRef = useRef<ConnectionRef>({});
-	const [status, setStatus] = useState<
-		'idle' | 'connecting' | 'waiting' | 'started' | 'error'
-	>('idle');
-	const [blocked, setBlocked] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [sampleRate, setSampleRate] = useState<number>(RATE);
+	const [connection, setConnection] = useState<Connection | undefined>(undefined);
+	const [status, setStatus] = useState<'idle' | 'connecting' | 'waiting' | 'started'>('idle');
+	const [blocked, setBlocked] = useState<boolean>(false);
+	const error = undefined;
+	const sampleRate = undefined;
 
-	const safeCloseWs = useCallback((ws?: WebSocket) => {
-		if (!ws) return;
-		if (
-			ws.readyState !== WebSocket.CLOSED &&
-			ws.readyState !== WebSocket.CLOSING
-		) {
-			try {
-				ws.close();
-			} catch (e) {}
+	const updateConnection = () =>
+		setConnection(Object.assign({}, connection));
+
+	const stop = async () => {
+		connection.streamNode.disconnect();
+		connection.processorNode.disconnect();
+		await connection.audioContext.close();
+		connection.stream.getTracks().forEach(track => track.stop());
+		if (connection.ws.readyState !== WebSocket.CLOSED && connection.ws.readyState !== WebSocket.CLOSED)
+			connection.ws.close();
+		setConnection(undefined);
+		setStatus('idle');
+		setBlocked(false);
+	}
+
+	useEffect(() => {
+		if (!connection) return;
+
+		const { ws } = connection;
+
+		const wsOpen = () => {
+			console.log('WS Opened');
+			ws.send(JSON.stringify({
+				icom: 'main',
+				rate: RATE,
+				channels: CHANNELS,
+				priority: 4,
+				force: true
+			}));
+		};
+
+		const wsError = (e) => {
+			console.error('WS Error:', e);
+			stop();
+		};
+
+		const wsMessage = (e) => {
+			const data = e.data;
+			console.log('WS Message:', data);
+			const msg = JSON.parse(data);
+			switch (msg.type) {
+				case 'started':
+					setStatus('started');
+					break;
+				case 'stopped':
+					setStatus('waiting');
+					break;
+				case 'waiting':
+					setStatus('waiting');
+					break;
+			}
+		};
+
+		const wsClose = () => {
+			console.log('WS Closed');
+			stop();
+		};
+
+		ws.addEventListener('open', wsOpen);
+		ws.addEventListener('error', wsError);
+		ws.addEventListener('message', wsMessage);
+		ws.addEventListener('close', wsClose);
+
+		return () => {
+			ws.removeEventListener('open', wsOpen);
+			ws.removeEventListener('error', wsError);
+			ws.removeEventListener('message', wsMessage);
+			ws.removeEventListener('close', wsClose);
+		};
+	}, [connection]);
+
+	useEffect(() => {
+		if (!connection) return;
+		const {processorNode} = connection;
+
+		const processAudio = (e) => {
+			if (status !== 'started') return;
+			const data = new Float32Array(e.inputBuffer.getChannelData(0));
+			const {ws} = connection;
+			ws.send(data.buffer);
 		}
-	}, []);
 
-	const cleanupConnection = useCallback(async () => {
-		const c = connRef.current;
-		try {
-			if (c?.workletNode) {
-				try {
-					c.workletNode.port.onmessage = null;
-					c.workletNode.disconnect();
-				} catch (e) {}
-				c.workletNode = null;
-			}
-			if (c?.processorNode) {
-				try {
-					c.processorNode.removeEventListener('audioprocess' as any, () => {});
-					c.processorNode.disconnect();
-				} catch (e) {}
-				c.processorNode = null;
-			}
-			if (c?.audioContext) {
-				try {
-					await c.audioContext.close();
-				} catch (e) {
-					console.warn('audioContext.close failed', e);
-				}
-				c.audioContext = undefined;
-			}
-			if (c?.stream) {
-				try {
-					c.stream.getTracks().forEach((t) => t.stop());
-				} catch (e) {}
-				c.stream = null;
-			}
-			safeCloseWs(c?.ws);
-			connRef.current = {};
-		} catch (e) {
-			console.error('cleanup error', e);
-		} finally {
-			setStatus('idle');
-			setBlocked(false);
-		}
-	}, [safeCloseWs]);
+		processorNode.addEventListener('audioprocess', processAudio);
+		return () => {
+			processorNode.removeEventListener('audioprocess', processAudio);
+		};
+	}, [connection, status]);
 
-	const start = useCallback(async () => {
-		setError(null);
-		setBlocked(true);
-		setStatus('connecting');
-
+	const start = async () => {
 		const ws = new WebSocket(`${WS_BASE_URL}/api/queries/stream`);
 		ws.binaryType = 'arraybuffer';
-		connRef.current.ws = ws;
+		
+		const stream = await navigator.mediaDevices.getUserMedia({
+			audio: {
+				sampleRate: RATE,
+				channelCount: CHANNELS
+			},
+			video: false
+		});
 
-		try {
-			const stream = await navigator.mediaDevices.getUserMedia({
-				audio: { channelCount: CHANNELS },
-				video: false
-			});
-			connRef.current.stream = stream;
+		// @ts-ignore
+		const audioContext: AudioContext = new (window.AudioContext || window.webkitAudioContext)({
+			sampleRate: RATE
+		});
 
-			const trackSettings = stream.getAudioTracks()[0].getSettings();
-			const actualSampleRate = (trackSettings.sampleRate as number) || RATE;
-			setSampleRate(actualSampleRate);
+		const streamNode = audioContext.createMediaStreamSource(stream);
 
-			const AudioCtx = (window.AudioContext ||
-				(window as any).webkitAudioContext) as typeof AudioContext;
-			const audioContext = new AudioCtx({ sampleRate: actualSampleRate });
-			connRef.current.audioContext = audioContext;
+		const processorNode: ScriptProcessorNode = audioContext.createScriptProcessor(8192, 1, 1);
 
-			if (ws.readyState === WebSocket.OPEN) {
-				ws.send(
-					JSON.stringify({
-						icom: 'main',
-						rate: actualSampleRate,
-						channels: CHANNELS,
-						priority: 4,
-						force: true
-					})
-				);
-			} else {
-				const onOpenOnce = () => {
-					try {
-						ws.send(
-							JSON.stringify({
-								icom: 'main',
-								rate: actualSampleRate,
-								channels: CHANNELS,
-								priority: 4,
-								force: true
-							})
-						);
-					} catch (e) {}
-					ws.removeEventListener('open', onOpenOnce);
-				};
-				ws.addEventListener('open', onOpenOnce);
-			}
-		} catch (e: any) {
-			console.error('start failed', e);
-			setError(e?.message || 'Не удалось получить доступ к микрофону');
-			setStatus('error');
-			setBlocked(false);
-			safeCloseWs(connRef.current.ws);
-		}
-	}, [safeCloseWs]);
+		streamNode.connect(processorNode);
+		processorNode.connect(audioContext.destination);
 
-	const stop = useCallback(async () => {
-		await cleanupConnection();
-	}, [cleanupConnection]);
+		setStatus('connecting');
+		setConnection({
+			audioContext, processorNode, stream, streamNode, ws
+		});
+		setBlocked(false);
+	};
 
-	const handleClick = useCallback(() => {
-		if (status === 'idle' || status === 'error') {
+	const handleClick = () => {
+		setBlocked(true);
+		if (status === 'idle') {
 			start();
 		} else {
 			stop();
 		}
-	}, [start, stop, status]);
-
-	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (e.code === 'Space') {
-				e.preventDefault();
-				if (!blocked) handleClick();
-			}
-		};
-		window.addEventListener('keydown', onKey);
-		return () => window.removeEventListener('keydown', onKey);
-	}, [blocked, handleClick]);
-
-	useEffect(() => {
-		const c = connRef.current;
-		const ws = c.ws;
-		if (!ws) return;
-
-		const onOpen = () => {
-			try {
-				ws.send(
-					JSON.stringify({
-						icom: 'main',
-						rate: sampleRate || RATE,
-						channels: CHANNELS,
-						priority: 4,
-						force: true
-					})
-				);
-			} catch (e) {}
-		};
-
-		const onError = (ev: Event) => {
-			console.error('ws error', ev);
-			setError('WebSocket error');
-			setStatus('error');
-		};
-
-		const onMessage = (ev: MessageEvent) => {
-			try {
-				const msg = typeof ev.data === 'string' ? JSON.parse(ev.data) : null;
-				if (msg?.type === 'started') setStatus('started');
-				if (msg?.type === 'stopped') setStatus('waiting');
-			} catch (e) {
-				console.debug('ws message (binary/unknown)', ev.data);
-			}
-		};
-
-		const onClose = () => {
-			cleanupConnection();
-		};
-
-		ws.addEventListener('open', onOpen);
-		ws.addEventListener('error', onError);
-		ws.addEventListener('message', onMessage);
-		ws.addEventListener('close', onClose);
-
-		return () => {
-			try {
-				ws.removeEventListener('open', onOpen);
-				ws.removeEventListener('error', onError);
-				ws.removeEventListener('message', onMessage);
-				ws.removeEventListener('close', onClose);
-			} catch (e) {}
-		};
-	}, [status, sampleRate, cleanupConnection]);
-
-	useEffect(() => {
-		const node = connRef.current.workletNode || connRef.current.processorNode;
-		if (!node) return;
-
-		const onMessage = (ev: MessageEvent) => {
-			if (status !== 'started') return;
-			const ws = connRef.current.ws;
-			if (!ws || ws.readyState !== WebSocket.OPEN) return;
-			const payload = ev.data;
-			if (payload instanceof Float32Array) ws.send(payload.buffer);
-			else if (payload && payload.buffer) ws.send(payload.buffer);
-		};
-
-		if (connRef.current.workletNode) {
-			connRef.current.workletNode.port.onmessage = (e) =>
-				onMessage({ data: e.data } as MessageEvent);
-			return () => {
-				if (connRef.current.workletNode)
-					connRef.current.workletNode.port.onmessage = null;
-			};
-		} else if (connRef.current.processorNode) {
-			const proc = connRef.current.processorNode;
-			const audioprocess = (e: any) => {
-				if (status !== 'started') return;
-				const channel = e.inputBuffer.getChannelData(0);
-				onMessage({
-					data: new Float32Array(channel)
-				} as unknown as MessageEvent);
-			};
-			proc.addEventListener('audioprocess' as any, audioprocess as any);
-			return () =>
-				proc.removeEventListener('audioprocess' as any, audioprocess as any);
-		}
-
-		return;
-	}, [status]);
+	};
 
 	const statusLabel =
 		status === 'idle'
@@ -353,7 +251,7 @@ export default function AnnouncementsPage(): JSX.Element {
 								<div className='flex flex-col items-start'>
 									<div className='text-xs text-slate-400'>Кодек</div>
 									<div className='font-medium text-slate-700'>Opus</div>
-								</div>
+								</div>3
 								<div className='flex flex-col items-end'>
 									<div className='text-xs text-slate-400'>Частота</div>
 									<div className='font-medium text-slate-700'>
