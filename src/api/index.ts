@@ -7,7 +7,19 @@ const apiErrorSchema = z.object({
 
 type ApiError = z.infer<typeof apiErrorSchema>;
 
-export const ORIGIN = 'localhost:8000';
+export let ORIGIN = 'localhost:8000';
+
+export let SECURED = false;
+
+if (typeof window !== 'undefined') {
+	if (window.location.port !== '5173') {
+		ORIGIN = '';
+		if (window.location.protocol === 'https:') {
+			SECURED = true;
+		}
+	}
+}
+
 export const HTTP_BASE_URL = ORIGIN === '' ? '' : `http://${ORIGIN}`;
 export const WS_BASE_URL = ORIGIN === '' ? '' : `ws://${ORIGIN}`;
 

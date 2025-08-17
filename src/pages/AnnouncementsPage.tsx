@@ -2,15 +2,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from 'react-bootstrap';
 import { Mic, StopCircle, Loader2 } from 'lucide-react';
+import { WS_BASE_URL } from '@/api'
 
 // Replace these with your runtime env values
-const WS_BASE_URL =
-	typeof window !== 'undefined'
-		? window.location.protocol === 'https:'
-			? 'wss://' + window.location.host
-			: 'ws://' + 'localhost:8000'
-		: '';
-const RATE = 24000;
+const RATE = 48000;
 const CHANNELS = 1;
 
 type ConnectionRef = {
@@ -21,12 +16,20 @@ type ConnectionRef = {
 	stream?: MediaStream | null;
 };
 
+interface Connection {
+	ws: WebSocket;
+	audioContext: AudioContext;
+	processorNode: ScriptProcessorNode;
+	stream: MediaStream;
+	streamNode: MediaStreamAudioSourceNode;
+}
+
 export default function AnnouncementsPage(): JSX.Element {
-	const [connection, setConnection] = useState<Connection | undefined>(undefined);
+	const [connection, setConnection] = useState<Connection | null>(null);
 	const [status, setStatus] = useState<'idle' | 'connecting' | 'waiting' | 'started'>('idle');
-	const [blocked, setBlocked] = useState<boolean>(false);
-	const error = undefined;
-	const sampleRate = undefined;
+	const [error, setError] = useState<'string' | null>(null);
+
+	const blocked = !(status === 'idle' || status === 'started' || status === 'waiting');
 
 	const updateConnection = () =>
 		setConnection(Object.assign({}, connection));
@@ -36,11 +39,9 @@ export default function AnnouncementsPage(): JSX.Element {
 		connection.processorNode.disconnect();
 		await connection.audioContext.close();
 		connection.stream.getTracks().forEach(track => track.stop());
-		if (connection.ws.readyState !== WebSocket.CLOSED && connection.ws.readyState !== WebSocket.CLOSED)
-			connection.ws.close();
-		setConnection(undefined);
+		connection.ws.close();
+		setConnection(null);
 		setStatus('idle');
-		setBlocked(false);
 	}
 
 	useEffect(() => {
@@ -49,7 +50,7 @@ export default function AnnouncementsPage(): JSX.Element {
 		const { ws } = connection;
 
 		const wsOpen = () => {
-			console.log('WS Opened');
+			console.log('[WS] Opened');
 			ws.send(JSON.stringify({
 				icom: 'main',
 				rate: RATE,
@@ -60,13 +61,13 @@ export default function AnnouncementsPage(): JSX.Element {
 		};
 
 		const wsError = (e) => {
-			console.error('WS Error:', e);
+			console.error('[WS] Error:', e);
 			stop();
 		};
 
 		const wsMessage = (e) => {
 			const data = e.data;
-			console.log('WS Message:', data);
+			console.log('[WS] Message:', data);
 			const msg = JSON.parse(data);
 			switch (msg.type) {
 				case 'started':
@@ -82,11 +83,15 @@ export default function AnnouncementsPage(): JSX.Element {
 		};
 
 		const wsClose = () => {
-			console.log('WS Closed');
+			console.log('[WS] Closed');
 			stop();
 		};
 
-		ws.addEventListener('open', wsOpen);
+		if (ws.readyState === WebSocket.OPEN) {
+			// call handler if connection was made before listener registration
+			if (status === 'connecting') wsOpen();
+		} else ws.addEventListener('open', wsOpen);
+
 		ws.addEventListener('error', wsError);
 		ws.addEventListener('message', wsMessage);
 		ws.addEventListener('close', wsClose);
@@ -114,7 +119,7 @@ export default function AnnouncementsPage(): JSX.Element {
 		return () => {
 			processorNode.removeEventListener('audioprocess', processAudio);
 		};
-	}, [connection, status]);
+	}, [connection, status]); 
 
 	const start = async () => {
 		const ws = new WebSocket(`${WS_BASE_URL}/api/queries/stream`);
@@ -135,7 +140,7 @@ export default function AnnouncementsPage(): JSX.Element {
 
 		const streamNode = audioContext.createMediaStreamSource(stream);
 
-		const processorNode: ScriptProcessorNode = audioContext.createScriptProcessor(8192, 1, 1);
+		const processorNode: ScriptProcessorNode = audioContext.createScriptProcessor(16384, 1, 1);
 
 		streamNode.connect(processorNode);
 		processorNode.connect(audioContext.destination);
@@ -144,11 +149,9 @@ export default function AnnouncementsPage(): JSX.Element {
 		setConnection({
 			audioContext, processorNode, stream, streamNode, ws
 		});
-		setBlocked(false);
 	};
 
 	const handleClick = () => {
-		setBlocked(true);
 		if (status === 'idle') {
 			start();
 		} else {
@@ -255,7 +258,7 @@ export default function AnnouncementsPage(): JSX.Element {
 								<div className='flex flex-col items-end'>
 									<div className='text-xs text-slate-400'>Частота</div>
 									<div className='font-medium text-slate-700'>
-										{sampleRate} Hz
+										{RATE} Hz
 									</div>
 								</div>
 								<div className='text-xs text-slate-400 mb-2'>
