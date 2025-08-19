@@ -254,7 +254,7 @@ export default function AnnouncementsPage(): JSX.Element {
 								<div className='flex flex-col items-start'>
 									<div className='text-xs text-slate-400'>Кодек</div>
 									<div className='font-medium text-slate-700'>Opus</div>
-								</div>3
+								</div>
 								<div className='flex flex-col items-end'>
 									<div className='text-xs text-slate-400'>Частота</div>
 									<div className='font-medium text-slate-700'>

@@ -1,29 +1,34 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { Button, Spinner, Modal } from 'react-bootstrap';
+import { Spinner, Modal } from 'react-bootstrap';
 import * as sounds from '@/api/sounds';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import Panel from '@/components/Panel';
 import {
 	ExclamationTriangle,
 	Laptop,
 	MusicNote,
 	Plus,
 	Speaker,
-	Trash
+	Trash,
+	PlayFill,
+	PlusLg
 } from 'react-bootstrap-icons';
 import { formatDurationMSS, humanFileSize } from '@/utils';
 import AudioPlayer from '@/components/AudioPlayer';
 import { HTTP_BASE_URL } from '@/api';
 import { playSound } from '@/api/queries';
 import FileUploadButton from '@/components/FileUploadButton';
+import { H1, H2, Name, Value, Note } from '@/components/text';
 import { useSounds } from '@/sounds';
+import Button from '@/components/Button';
+import Field from '@/components/Field';
 
 const SoundsPage = () => {
 	const { soundsQuery } = useSounds();
 	const [selectedSoundName, setSelectedSoundName] = useState<
 		string | undefined
 	>(undefined);
-	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [soundToDelete, setSoundToDelete] = useState<string | null>(null);
 	const queryClient = useQueryClient();
 
@@ -45,13 +50,11 @@ const SoundsPage = () => {
 
 	const handleDeleteClick = (soundName: string) => {
 		setSoundToDelete(soundName);
-		setShowDeleteModal(true);
 	};
 
 	const confirmDelete = () => {
 		if (soundToDelete) {
 			deleteSoundMut.mutate(soundToDelete);
-			setShowDeleteModal(false);
 			setSoundToDelete(null);
 
 			// Если удаляем выбранный звук - сбрасываем выделение
@@ -71,12 +74,10 @@ const SoundsPage = () => {
 
 	return (
 		<div className='max-w-7xl mx-auto p-6'>
-			<h1 className='text-3xl font-semibold text-gray-700 mb-6'>
-				Библиотека звуков
-			</h1>
+			<H1>Библиотека звуков</H1>
 			{/* Левая панель — список звуков */}
 			<div className='grid grid-cols-3 gap-6'>
-				<div className='col-span-2 bg-white rounded-xl shadow p-4 flex flex-col'>
+				<div className='col-span-2 bg-gray-50 rounded-xl shadow p-4 flex flex-col'>
 					{soundsQuery.isLoading ? (
 						<div className='flex justify-center items-center flex-1'>
 							<Spinner />{' '}
@@ -95,8 +96,8 @@ const SoundsPage = () => {
 										onClick={() => setSelectedSoundName(soundInfo.name)}
 										className={`flex items-center p-3 rounded-lg border transition hover:shadow-sm cursor-pointer ${
 											selectedSoundName === soundInfo.name
-												? 'bg-blue-50 border-blue-300'
-												: 'bg-white border-gray-200 hover:bg-gray-50'
+												? 'bg-blue-50'
+												: 'bg-white hover:bg-gray-50'
 										}`}
 									>
 										{soundInfo.sound_specs ? (
@@ -133,61 +134,80 @@ const SoundsPage = () => {
 
 					<div className='mt-4'>
 						<FileUploadButton
-							className='flex items-center justify-center gap-2 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition'
+							className='w-full'
 							handleFile={(file) => uploadSoundMut.mutate(file)}
 						>
 							<Plus size={20} /> Загрузить звук
+							{/* <PlusLg size={14} /> Загрузить звук */}
 						</FileUploadButton>
 					</div>
 				</div>
 
 				{/* Правая панель — предпросмотр и управление звуком */}
-				<div className='bg-white rounded-xl shadow p-4 flex flex-col'>
+				<Panel className='flex flex-col'>
 					{selectedSound ? (
 						<>
-							<h2 className='text-lg font-semibold text-gray-700 mb-4'>
+							{/* <h2 className='text-lg font-semibold text-gray-700 mb-4'>
 								{selectedSound.name}
-							</h2>
-							<div className='bg-gray-50 p-3 rounded-lg border mb-3'>
-								<span className='flex items-center gap-2 mb-2 text-gray-700 font-medium'>
-									<Laptop size={16} /> Ваше устройство
-								</span>
-								<AudioPlayer
-									className='w-full'
-									src={`${HTTP_BASE_URL}/api/sounds/file/${selectedSound.name}`}
-								/>
-							</div>
+							</h2> */}
+							{/* <div className='text-lg font-medium text-slate-600 p-4 border-b'>
+								{selectedSound.name}
+							</div> */}
+							<Panel.Header>
+								<H2>{selectedSound.name}</H2>
+							</Panel.Header>
 
-							<div className='bg-gray-50 p-3 rounded-lg border flex flex-col gap-3'>
-								<span className='flex items-center gap-2 text-gray-700 font-medium'>
-									<Speaker size={16} /> Динамики школы
-								</span>
-								{selectedSound.sound_specs ? (
-									<Button
-										className='w-full'
-										disabled={playSoundMut.isPending}
-										onClick={() => playSoundMut.mutate(selectedSoundName)}
-										variant='success'
-									>
-										▶ Воспроизвести
-									</Button>
-								) : (
-									<span className='text-orange-600 text-sm flex items-center gap-1'>
-										<ExclamationTriangle size={14} /> Неизвестный формат
-									</span>
-								)}
-							</div>
+							<Panel.Body className='p-4 bg-gray-50 space-y-8'>
+								<Field className='gap-2'>
+									<Name className='flex items-center gap-2'>
+										<Laptop size={16} /> Ваше устройство
+									</Name>
+									<Value>
+										<AudioPlayer
+											className='w-full'
+											src={`${HTTP_BASE_URL}/api/sounds/file/${selectedSound.name}`}
+										/>
+									</Value>
+									<Note>Прослушать звук в браузере</Note>
+								</Field>
+
+								<Field className='gap-2'>
+									<Name className='flex items-center gap-2'>
+										<Speaker size={16} /> Динамики школы
+									</Name>
+									<Value>
+										{selectedSound.sound_specs ? (
+											<Button
+												className='w-full'
+												disabled={playSoundMut.isPending}
+												onClick={() => playSoundMut.mutate(selectedSoundName)}
+												variant='success'
+											>
+												<PlayFill /> Воспроизвести
+											</Button>
+										) : (
+											<span className='text-orange-600 text-sm flex items-center gap-1'>
+												<ExclamationTriangle size={14} /> Неизвестный формат
+											</span>
+										)}
+									</Value>
+									<Note>Воспроизвести звук в системе громкоговорителей</Note>
+								</Field>
+							</Panel.Body>
 						</>
 					) : (
-						<div className='flex flex-col items-center justify-center text-gray-400 flex-1'>
-							<Speaker size={28} className='mb-2' />
+						<Panel.Body className='flex flex-col items-center justify-center text-gray-400 text-center flex-1'>
+							<Speaker size={40} className='mb-2' />
 							<span>Выберите звук для предпросмотра</span>
-						</div>
+						</Panel.Body>
 					)}
-				</div>
+				</Panel>
 			</div>
 
-			<Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+			<Modal
+				show={soundToDelete !== null}
+				onHide={() => setSoundToDelete(null)}
+			>
 				<Modal.Header closeButton className='border-none'>
 					<Modal.Title>Подтверждение удаления</Modal.Title>
 				</Modal.Header>
@@ -213,7 +233,7 @@ const SoundsPage = () => {
 				<Modal.Footer className='border-none'>
 					<Button
 						variant='secondary'
-						onClick={() => setShowDeleteModal(false)}
+						onClick={() => setSoundToDelete(null)}
 						disabled={deleteSoundMut.isPending}
 					>
 						Отмена

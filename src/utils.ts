@@ -1,4 +1,7 @@
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
+export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
 export const clamp = (value, min, max) =>
 	value < min ? min : value > max ? max : value;

@@ -1,5 +1,5 @@
 import { HTMLAttributes, useRef } from 'react';
-import { Button, ButtonProps } from 'react-bootstrap';
+import { Button, ButtonProps } from '@/components/Button';
 
 const FileUploadButton = ({handleFile, children, input, ...attrs}: {
 	handleFile?: (file: File) => void,

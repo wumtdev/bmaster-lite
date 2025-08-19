@@ -16,22 +16,25 @@ import {
 	useQueryClient,
 	UseQueryResult
 } from '@tanstack/react-query';
-import {
-	Button,
-	Card,
-	Form,
-	Spinner,
-	OverlayTrigger,
-	Tooltip
-} from 'react-bootstrap';
+import { Card, Form, Spinner, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import {
 	Floppy,
+	FloppyFill,
+	PencilFill,
 	PencilSquare,
 	Plus,
 	Trash,
+	X,
+	XCircle,
+	XCircleFill,
+	XLg,
 	XOctagon
 } from 'react-bootstrap-icons';
 import { Typeahead } from 'react-bootstrap-typeahead';
+import { Panel } from '@/components/Panel';
+import { H1, H2, Name, Note, Value } from '@/components/text';
+import { Button } from '@/components/Button';
+import Field from '@/components/Field';
 
 /* ---------------- Context ---------------- */
 export interface BellsContextData {
@@ -87,8 +90,8 @@ const LessonCard = ({
 	};
 
 	return (
-		<Card className='flex flex-col shadow-sm' {...attrs}>
-			<Card.Header className='flex items-center gap-3 p-3 bg-white'>
+		<Panel className='flex flex-col' {...attrs}>
+			<Panel.Header className='flex items-center gap-3 p-3'>
 				{!editingLessons && (
 					<Form.Check
 						type='switch'
@@ -99,14 +102,14 @@ const LessonCard = ({
 				)}
 
 				<div className='flex items-baseline gap-2'>
-					<span className='text-lg font-semibold'>{lesson_id + 1}</span>
-					<span className='text-sm text-slate-500'>урок</span>
+					<Value>{lesson_id + 1}</Value>
+					<Name>урок</Name>
 				</div>
 
 				{disabledReason && (
-					<div className='ml-3 text-sm text-slate-400'>
+					<Note>
 						Выключен: {disabledReason}
-					</div>
+					</Note>
 				)}
 
 				<div className='ml-auto flex items-center gap-2'>
@@ -126,11 +129,11 @@ const LessonCard = ({
 						</OverlayTrigger>
 					)}
 				</div>
-			</Card.Header>
+			</Panel.Header>
 
 			<div className='flex flex-col sm:flex-row gap-4 p-4 bg-blue-50'>
-				<div className='flex flex-col w-full sm:w-40 gap-2'>
-					<span className='text-sm text-slate-400'>Начало</span>
+				<Field>
+					<Name>Начало</Name>
 					{editingLessons ? (
 						<input
 							type='time'
@@ -150,10 +153,10 @@ const LessonCard = ({
 					) : (
 						<div className='text-lg'>{lesson.start_at}</div>
 					)}
-				</div>
+				</Field>
 
-				<div className='flex-1 flex flex-col gap-2'>
-					<span className='text-sm text-slate-400'>Звук (начало)</span>
+				<Field>
+					<Name>Звук (начало)</Name>
 					{editingLessons ? (
 						<Typeahead
 							className='border-none'
@@ -175,12 +178,12 @@ const LessonCard = ({
 							<label className='text-gray-500'>отсутствует</label>
 						)
 					)}
-				</div>
+				</Field>
 			</div>
 
 			<div className='flex flex-col sm:flex-row gap-4 p-4 bg-green-50'>
-				<div className='flex flex-col w-full sm:w-40 gap-2'>
-					<span className='text-sm text-slate-400'>Конец</span>
+				<Field>
+					<Name>Конец</Name>
 					{editingLessons ? (
 						<input
 							type='time'
@@ -200,10 +203,10 @@ const LessonCard = ({
 					) : (
 						<div className='text-lg'>{lesson.end_at}</div>
 					)}
-				</div>
+				</Field>
 
-				<div className='flex-1 flex flex-col gap-2'>
-					<span className='text-sm text-slate-400'>Звук (конец)</span>
+				<Field>
+					<Name>Звук (конец)</Name>
 					{editingLessons ? (
 						<Typeahead
 							className='border-none'
@@ -225,9 +228,9 @@ const LessonCard = ({
 							<label className='text-gray-500'>отсутствует</label>
 						)
 					)}
-				</div>
+				</Field>
 			</div>
-		</Card>
+		</Panel>
 	);
 };
 
@@ -352,15 +355,13 @@ const BellsPage = () => {
 			}}
 		>
 			<div className='mx-auto max-w-7xl p-6'>
-				<h1 className='text-3xl font-semibold text-slate-600 mb-4'>
-					Расписание звонков
-				</h1>
+				<H1>Расписание звонков</H1>
 
 				<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
 					{/* Левая часть — список уроков */}
 					<div className='lg:col-span-2'>
-						<Card className='shadow rounded-lg overflow-hidden'>
-							<div className='flex items-center justify-between p-4 border-b bg-white'>
+						<Panel>
+							<Panel.Header className='flex items-center justify-between'>
 								<div className='flex items-center gap-3'>
 									{editingLessons ? (
 										<div className='text-lg font-medium text-slate-600'>
@@ -374,10 +375,10 @@ const BellsPage = () => {
 												onChange={(e) => switchBells.mutate(e.target.checked)}
 												type='switch'
 											/>
-											<div>
+											<H2>
 												Звонки{' '}
 												{bellsSettings.enabled ? 'включены' : 'выключены'}
-											</div>
+											</H2>
 										</div>
 									)}
 								</div>
@@ -386,11 +387,11 @@ const BellsPage = () => {
 									{editingLessons ? (
 										<>
 											<Button
-												variant='outline-danger'
+												variant='danger'
 												onClick={cancelEditing}
 												className='d-flex align-items-center gap-2'
 											>
-												<XOctagon size='1.1rem' /> Отменить
+												<XCircleFill size={14} /> Отменить
 											</Button>
 											<Button
 												variant='primary'
@@ -401,7 +402,7 @@ const BellsPage = () => {
 												{saveEditing.isPending ? (
 													<Spinner size='sm' />
 												) : (
-													<Floppy size='1.1rem' />
+													<FloppyFill size={14} />
 												)}{' '}
 												Сохранить
 											</Button>
@@ -412,21 +413,23 @@ const BellsPage = () => {
 											onClick={startEditing}
 											className='d-flex align-items-center gap-2'
 										>
-											<PencilSquare size='1.1rem' /> Изменить
+											<PencilFill size={14} /> Изменить
 										</Button>
 									)}
 								</div>
-							</div>
+							</Panel.Header>
 
-							<div className='p-4 space-y-4 max-h-[60vh] overflow-y-auto bg-gray-50'>
+							<div className='p-4 space-y-4 max-h-[60vh] overflow-y-auto'>
 								{displayLessons.length === 0 ? (
-									<div className="text-gray-500 text-center py-8">
-									<div className="flex items-center justify-center space-x-2">
-										<span>В расписании пока нет уроков. Добавьте их, войдя в режим редактирования.</span>
-										<span className="ml-auto text-xl">↑</span>
+									<div className='text-gray-500 text-center py-8'>
+										<div className='flex items-center justify-center space-x-2'>
+											<span>
+												В расписании пока нет уроков. Добавьте их, войдя в режим
+												редактирования.
+											</span>
+											<span className='ml-auto text-xl'>↑</span>
+										</div>
 									</div>
-									</div>
-
 								) : (
 									displayLessons.map((lesson, lesson_id) => {
 										const lessonBreak = displayBreaks[lesson_id];
@@ -478,32 +481,28 @@ const BellsPage = () => {
 									</Button>
 								</div>
 							)}
-						</Card>
+						</Panel>
 					</div>
 
 					{/* Правая панель — всякая инфа */}
 					<div>
-						<Card className='shadow rounded-lg overflow-hidden'>
-							<div className='p-4 border-b bg-white'>
-								<div className='text-lg font-medium text-slate-600'>
-									Детали
-								</div>
-							</div>
+						<Panel>
+							<Panel.Header>
+								<H2>Детали</H2>
+								<Note>Управление шаблонами и быстрыми действиями</Note>
+							</Panel.Header>
 
-							<div className='p-4 space-y-4 bg-gray-50'>
-								<div>
-									<div className='text-sm text-slate-500 mb-2'>
-										Рабочее время
-									</div>
-									<div className='text-md font-medium'>
+							<Panel.Body className='space-y-4'>
+								<Field>
+									<Name>Рабочее время</Name>
+									<Value>
 										{workTime ? `${workTime.start} — ${workTime.end}` : '—'}
-									</div>
-								</div>
+									</Value>
+									<Note>С начала 1-го урока и до конца последнего</Note>
+								</Field>
 								<hr />
-								<div>
-									<div className='text-sm text-slate-500 mb-2'>
-										Состояние расписания
-									</div>
+								<Field>
+									<Name>Состояние расписания</Name>
 									<div className='flex items-center gap-2'>
 										<div
 											className={`px-2 py-1 rounded text-sm font-medium ${
@@ -514,13 +513,13 @@ const BellsPage = () => {
 										>
 											{bellsSettings.enabled ? 'Включено' : 'Выключено'}
 										</div>
-										<div className='text-sm text-gray-500'>
+										<Note>
 											({enabledLessons.length} уроков)
-										</div>
+										</Note>
 									</div>
-								</div>
-							</div>
-						</Card>
+								</Field>
+							</Panel.Body>
+						</Panel>
 					</div>
 				</div>
 

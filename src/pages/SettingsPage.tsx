@@ -11,8 +11,9 @@ import {
 import { useSounds } from '@/sounds';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Form, Spinner } from 'react-bootstrap';
+import { Card, Form, Spinner } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
+import Button from '@/components/Button';
 
 const SettingsPage = () => {
 	const bellsSettingsQuery = useQuery({
@@ -120,10 +121,18 @@ const SettingsPage = () => {
 
 						{/* Сохранить */}
 						<div className='mt-4'>
-							<Button
+							{/* <Button
 								disabled={saveMut.isPending}
 								onClick={() => saveMut.mutate()}
 								className='w-full py-2 text-lg rounded-xl shadow-md'
+								variant='primary'
+							>
+								Сохранить изменения
+							</Button> */}
+							<Button
+								disabled={saveMut.isPending}
+								onClick={() => saveMut.mutate()}
+								className='w-full py-2 text-lg'
 								variant='primary'
 							>
 								Сохранить изменения
