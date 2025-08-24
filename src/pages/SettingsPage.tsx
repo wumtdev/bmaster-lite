@@ -14,6 +14,9 @@ import React, { useEffect, useState } from 'react';
 import { Card, Form, Spinner } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import Button from '@/components/Button';
+import { H1, Name, Value, Note } from '@/components/text';
+import Panel from '@/components/Panel';
+import Field from '@/components/Field';
 
 const SettingsPage = () => {
 	const bellsSettingsQuery = useQuery({
@@ -55,32 +58,31 @@ const SettingsPage = () => {
 
 	return (
 		<div className='mx-auto flex flex-col w-full max-w-md p-4'>
-			<h1 className='text-3xl font-semibold text-slate-600 mb-6'>Настройки</h1>
-			<Card className='bg-slate-50 border-0 shadow-lg rounded-2xl'>
-				<Card.Body className='p-5'>
-					<Form className='flex flex-col gap-5'>
-						<Form.Group>
-							<Form.Label className='font-medium text-slate-700'>
-								Звук перед объявлением
-							</Form.Label>
-							<Typeahead
-								className='mt-2'
-								emptyLabel='не найдено'
-								selected={ringsound ? [ringsound] : []}
-								onChange={(selected) => {
-									setRingsound(selected[0]);
-								}}
-								size='sm'
-								options={soundNameList}
-								placeholder='отсутствует'
-							/>
-						</Form.Group>
+			<H1>Настройки</H1>
+			<Panel>
+				<Panel.Body className='p-5'>
+					<div className='flex flex-col gap-8'>
+						<Field>
+							<Name>Звук перед объявлением</Name>
+							<Value>
+								<Typeahead
+									className=''
+									emptyLabel='не найдено'
+									selected={ringsound ? [ringsound] : []}
+									onChange={(selected) => {
+										setRingsound(selected[0]);
+									}}
+									size='sm'
+									options={soundNameList}
+									placeholder='отсутствует'
+								/>
+							</Value>
+						</Field>
 
-						<Form.Group>
-							<Form.Label className='font-medium text-slate-700'>
-								Учебные дни
-							</Form.Label>
-							<div className='grid grid-cols-4 gap-2 mt-2'>
+						<Field>
+							{/* <Name className='font-medium text-slate-700'> */}
+							<Name>Учебные дни</Name>
+							<div className='grid grid-cols-4 gap-2'>
 								{bellsWeekdays ? (
 									Object.entries({
 										ПН: 'monday',
@@ -114,10 +116,11 @@ const SettingsPage = () => {
 									</div>
 								)}
 							</div>
-							<Form.Text className='text-slate-500 text-sm'>
+							{/* <Form.Text className='text-slate-500 text-sm'> */}
+							<Note>
 								Дни недели, по которым работают звонки
-							</Form.Text>
-						</Form.Group>
+							</Note>
+						</Field>
 
 						{/* Сохранить */}
 						<div className='mt-4'>
@@ -138,9 +141,9 @@ const SettingsPage = () => {
 								Сохранить изменения
 							</Button>
 						</div>
-					</Form>
-				</Card.Body>
-			</Card>
+					</div>
+				</Panel.Body>
+			</Panel>
 		</div>
 	);
 };

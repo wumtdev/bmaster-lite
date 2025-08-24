@@ -157,7 +157,7 @@ const SoundsPage = () => {
 								<H2>{selectedSound.name}</H2>
 							</Panel.Header>
 
-							<Panel.Body className='p-4 bg-gray-50 space-y-8'>
+							<Panel.Body className='p-4 bg-gray-50 space-y-6'>
 								<Field className='gap-2'>
 									<Name className='flex items-center gap-2'>
 										<Laptop size={16} /> Ваше устройство
@@ -170,6 +170,8 @@ const SoundsPage = () => {
 									</Value>
 									<Note>Прослушать звук в браузере</Note>
 								</Field>
+
+								<hr/>
 
 								<Field className='gap-2'>
 									<Name className='flex items-center gap-2'>

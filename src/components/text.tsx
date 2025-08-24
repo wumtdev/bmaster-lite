@@ -32,12 +32,12 @@ export const Name = ({
 	className,
 	...attrs
 }: HTMLAttributes<HTMLHeadingElement>) => (
-	<h2
-		className={cn('text-sm text-slate-600', className)}
+	<div
+		className={cn('text-sm text-slate-500 font-medium', className)}
 		{...attrs}
 	>
 		{children}
-	</h2>
+	</div>
 );
 
 export const Value = ({
@@ -45,12 +45,12 @@ export const Value = ({
 	className,
 	...attrs
 }: HTMLAttributes<HTMLHeadingElement>) => (
-	<h2
+	<div
 		className={cn('text-md font-medium', className)}
 		{...attrs}
 	>
 		{children}
-	</h2>
+	</div>
 );
 
 export const Note = ({
@@ -58,10 +58,10 @@ export const Note = ({
 	className,
 	...attrs
 }: HTMLAttributes<HTMLHeadingElement>) => (
-	<h2
+	<div
 		className={cn('text-slate-400 text-sm', className)}
 		{...attrs}
 	>
 		{children}
-	</h2>
+	</div>
 );

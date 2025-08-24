@@ -12,7 +12,12 @@ export let ORIGIN = 'localhost:8000';
 export let SECURED = false;
 
 if (typeof window !== 'undefined') {
-	if (window.location.port !== '5173') {
+	if (window.location.port === '5173') {
+		// DEV MODE
+		ORIGIN = `${window.location.hostname}:8000`
+	}
+	else {
+		// PRODUCTION MODE
 		ORIGIN = '';
 		if (window.location.protocol === 'https:') {
 			SECURED = true;

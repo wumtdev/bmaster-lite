@@ -2,7 +2,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from 'react-bootstrap';
 import { Mic, StopCircle, Loader2 } from 'lucide-react';
-import { WS_BASE_URL } from '@/api'
+import { WS_BASE_URL } from '@/api';
+import { H1, H2, Note } from '@/components/text';
+import Panel from '@/components/Panel';
+import Kbd from '@/components/Kbd';
 
 // Replace these with your runtime env values
 const RATE = 48000;
@@ -26,23 +29,28 @@ interface Connection {
 
 export default function AnnouncementsPage(): JSX.Element {
 	const [connection, setConnection] = useState<Connection | null>(null);
-	const [status, setStatus] = useState<'idle' | 'connecting' | 'waiting' | 'started'>('idle');
+	const [status, setStatus] = useState<
+		'idle' | 'connecting' | 'waiting' | 'started'
+	>('idle');
 	const [error, setError] = useState<'string' | null>(null);
 
-	const blocked = !(status === 'idle' || status === 'started' || status === 'waiting');
+	const blocked = !(
+		status === 'idle' ||
+		status === 'started' ||
+		status === 'waiting'
+	);
 
-	const updateConnection = () =>
-		setConnection(Object.assign({}, connection));
+	const updateConnection = () => setConnection(Object.assign({}, connection));
 
 	const stop = async () => {
 		connection.streamNode.disconnect();
 		connection.processorNode.disconnect();
 		await connection.audioContext.close();
-		connection.stream.getTracks().forEach(track => track.stop());
+		connection.stream.getTracks().forEach((track) => track.stop());
 		connection.ws.close();
 		setConnection(null);
 		setStatus('idle');
-	}
+	};
 
 	useEffect(() => {
 		if (!connection) return;
@@ -51,13 +59,15 @@ export default function AnnouncementsPage(): JSX.Element {
 
 		const wsOpen = () => {
 			console.log('[WS] Opened');
-			ws.send(JSON.stringify({
-				icom: 'main',
-				rate: RATE,
-				channels: CHANNELS,
-				priority: 4,
-				force: true
-			}));
+			ws.send(
+				JSON.stringify({
+					icom: 'main',
+					rate: RATE,
+					channels: CHANNELS,
+					priority: 4,
+					force: true
+				})
+			);
 		};
 
 		const wsError = (e) => {
@@ -106,25 +116,25 @@ export default function AnnouncementsPage(): JSX.Element {
 
 	useEffect(() => {
 		if (!connection) return;
-		const {processorNode} = connection;
+		const { processorNode } = connection;
 
 		const processAudio = (e) => {
 			if (status !== 'started') return;
 			const data = new Float32Array(e.inputBuffer.getChannelData(0));
-			const {ws} = connection;
+			const { ws } = connection;
 			ws.send(data.buffer);
-		}
+		};
 
 		processorNode.addEventListener('audioprocess', processAudio);
 		return () => {
 			processorNode.removeEventListener('audioprocess', processAudio);
 		};
-	}, [connection, status]); 
+	}, [connection, status]);
 
 	const start = async () => {
 		const ws = new WebSocket(`${WS_BASE_URL}/api/queries/stream`);
 		ws.binaryType = 'arraybuffer';
-		
+
 		const stream = await navigator.mediaDevices.getUserMedia({
 			audio: {
 				sampleRate: RATE,
@@ -134,20 +144,26 @@ export default function AnnouncementsPage(): JSX.Element {
 		});
 
 		// @ts-ignore
-		const audioContext: AudioContext = new (window.AudioContext || window.webkitAudioContext)({
+		const audioContext: AudioContext = new (window.AudioContext ||
+			window.webkitAudioContext)({
 			sampleRate: RATE
 		});
 
 		const streamNode = audioContext.createMediaStreamSource(stream);
 
-		const processorNode: ScriptProcessorNode = audioContext.createScriptProcessor(16384, 1, 1);
+		const processorNode: ScriptProcessorNode =
+			audioContext.createScriptProcessor(16384, 1, 1);
 
 		streamNode.connect(processorNode);
 		processorNode.connect(audioContext.destination);
 
 		setStatus('connecting');
 		setConnection({
-			audioContext, processorNode, stream, streamNode, ws
+			audioContext,
+			processorNode,
+			stream,
+			streamNode,
+			ws
 		});
 	};
 
@@ -187,21 +203,17 @@ export default function AnnouncementsPage(): JSX.Element {
 
 	return (
 		<div className='mx-auto max-w-2xl p-6'>
-			<h1 className='text-3xl font-semibold text-slate-600 mb-6'>Объявления</h1>
+			<H1>Объявления</H1>
 
-			<Card className='shadow-lg rounded-2xl overflow-hidden'>
+			<Panel>
 				<div className='p-8 bg-white'>
 					<div className='flex flex-col items-center gap-6'>
 						<div className='text-center'>
-							<div className='text-lg font-medium text-slate-700'>
-								Вещание в эфир
-							</div>
-							<div className='text-sm text-slate-500 mt-1'>
+							<H2>Вещание в эфир</H2>
+							<Note>
 								Нажмите большую кнопку ниже или используйте&nbsp;
-								<kbd className='px-2 py-1 bg-black text-white rounded'>
-									Space
-								</kbd>
-							</div>
+								<Kbd code='Space' />
+							</Note>
 						</div>
 
 						{/* BIG CENTER BUTTON */}
@@ -257,9 +269,7 @@ export default function AnnouncementsPage(): JSX.Element {
 								</div>
 								<div className='flex flex-col items-end'>
 									<div className='text-xs text-slate-400'>Частота</div>
-									<div className='font-medium text-slate-700'>
-										{RATE} Hz
-									</div>
+									<div className='font-medium text-slate-700'>{RATE} Hz</div>
 								</div>
 								<div className='text-xs text-slate-400 mb-2'>
 									Логи и ошибки выводятся в консоль.
@@ -268,7 +278,7 @@ export default function AnnouncementsPage(): JSX.Element {
 						</div>
 					</div>
 				</div>
-			</Card>
+			</Panel>
 
 			<style>{`
         /* pulse animation for active broadcast */

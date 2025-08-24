@@ -90,7 +90,7 @@ const LessonCard = ({
 	};
 
 	return (
-		<Panel className='flex flex-col' {...attrs}>
+		<Panel className='flex flex-col rounded-lg' {...attrs}>
 			<Panel.Header className='flex items-center gap-3 p-3'>
 				{!editingLessons && (
 					<Form.Check
@@ -106,11 +106,7 @@ const LessonCard = ({
 					<Name>урок</Name>
 				</div>
 
-				{disabledReason && (
-					<Note>
-						Выключен: {disabledReason}
-					</Note>
-				)}
+				{disabledReason && <Note>Выключен: {disabledReason}</Note>}
 
 				<div className='ml-auto flex items-center gap-2'>
 					{editingLessons && overlap && (
@@ -131,103 +127,111 @@ const LessonCard = ({
 				</div>
 			</Panel.Header>
 
-			<div className='flex flex-col sm:flex-row gap-4 p-4 bg-blue-50'>
+			<div className='flex flex-col sm:flex-row gap-4 p-3 bg-blue-50'>
 				<Field>
 					<Name>Начало</Name>
-					{editingLessons ? (
-						<input
-							type='time'
-							value={lesson.start_at}
-							onChange={(e) => {
-								const updated = (editingLessons || []).map((l, idx) =>
-									idx === lesson_id ? { ...l, start_at: e.target.value } : l
-								);
-								setEditingLessons(updated);
-							}}
-							className={`px-2 py-1 border rounded ${
-								!lesson.start_at || overlap
-									? 'ring-2 ring-red-300'
-									: 'border-gray-200'
-							}`}
-						/>
-					) : (
-						<div className='text-lg'>{lesson.start_at}</div>
-					)}
+					<Value>
+						{editingLessons ? (
+							<input
+								type='time'
+								value={lesson.start_at}
+								onChange={(e) => {
+									const updated = (editingLessons || []).map((l, idx) =>
+										idx === lesson_id ? { ...l, start_at: e.target.value } : l
+									);
+									setEditingLessons(updated);
+								}}
+								className={`px-2 py-1 border rounded ${
+									!lesson.start_at || overlap
+										? 'ring-2 ring-red-300'
+										: 'border-gray-200'
+								}`}
+							/>
+						) : (
+							lesson.start_at
+						)}
+					</Value>
 				</Field>
 
 				<Field>
 					<Name>Звук (начало)</Name>
-					{editingLessons ? (
-						<Typeahead
-							className='border-none'
-							disabled={!editingLessons}
-							emptyLabel='не найдено'
-							selected={lesson.start_sound ? [lesson.start_sound] : []}
-							onChange={(selected) => {
-								const val = selected[0] as string | undefined;
-								const updated = (editingLessons || []).map((l, idx) =>
-									idx === lesson_id ? { ...l, start_sound: val } : l
-								);
-								setEditingLessons(updated);
-							}}
-							options={soundNameList}
-							placeholder='отсутствует'
-						/>
-					) : (
-						lesson.start_sound || (
-							<label className='text-gray-500'>отсутствует</label>
-						)
-					)}
+					<Value>
+						{editingLessons ? (
+							<Typeahead
+								className='border-none'
+								disabled={!editingLessons}
+								emptyLabel='не найдено'
+								selected={lesson.start_sound ? [lesson.start_sound] : []}
+								onChange={(selected) => {
+									const val = selected[0] as string | undefined;
+									const updated = (editingLessons || []).map((l, idx) =>
+										idx === lesson_id ? { ...l, start_sound: val } : l
+									);
+									setEditingLessons(updated);
+								}}
+								options={soundNameList}
+								placeholder='отсутствует'
+							/>
+						) : (
+							lesson.start_sound || (
+								<label className='text-gray-500'>отсутствует</label>
+							)
+						)}
+					</Value>
 				</Field>
 			</div>
 
-			<div className='flex flex-col sm:flex-row gap-4 p-4 bg-green-50'>
+			<div className='flex flex-col sm:flex-row gap-4 p-3 bg-green-50'>
 				<Field>
 					<Name>Конец</Name>
-					{editingLessons ? (
-						<input
-							type='time'
-							value={lesson.end_at}
-							onChange={(e) => {
-								const updated = (editingLessons || []).map((l, idx) =>
-									idx === lesson_id ? { ...l, end_at: e.target.value } : l
-								);
-								setEditingLessons(updated);
-							}}
-							className={`px-2 py-1 border rounded ${
-								!lesson.end_at || overlap
-									? 'ring-2 ring-red-300'
-									: 'border-gray-200'
-							}`}
-						/>
-					) : (
-						<div className='text-lg'>{lesson.end_at}</div>
-					)}
+					<Value>
+						{editingLessons ? (
+							<input
+								type='time'
+								value={lesson.end_at}
+								onChange={(e) => {
+									const updated = (editingLessons || []).map((l, idx) =>
+										idx === lesson_id ? { ...l, end_at: e.target.value } : l
+									);
+									setEditingLessons(updated);
+								}}
+								className={`px-2 py-1 border rounded ${
+									!lesson.end_at || overlap
+										? 'ring-2 ring-red-300'
+										: 'border-gray-200'
+								}`}
+							/>
+						) : (
+							lesson.end_at
+						)}
+					</Value>
 				</Field>
 
 				<Field>
 					<Name>Звук (конец)</Name>
-					{editingLessons ? (
-						<Typeahead
-							className='border-none'
-							disabled={!editingLessons}
-							emptyLabel='не найдено'
-							selected={lesson.end_sound ? [lesson.end_sound] : []}
-							onChange={(selected) => {
-								const val = selected[0] as string | undefined;
-								const updated = (editingLessons || []).map((l, idx) =>
-									idx === lesson_id ? { ...l, end_sound: val } : l
-								);
-								setEditingLessons(updated);
-							}}
-							options={soundNameList}
-							placeholder='отсутствует'
-						/>
-					) : (
-						lesson.end_sound || (
-							<label className='text-gray-500'>отсутствует</label>
-						)
-					)}
+					<Value>
+						{editingLessons ? (
+							<Typeahead
+								className='border-none'
+								disabled={!editingLessons}
+								emptyLabel='не найдено'
+								selected={lesson.end_sound ? [lesson.end_sound] : []}
+								onChange={(selected) => {
+									const val = selected[0] as string | undefined;
+									const updated = (editingLessons || []).map((l, idx) =>
+										idx === lesson_id ? { ...l, end_sound: val } : l
+									);
+									setEditingLessons(updated);
+								}}
+								options={soundNameList}
+								placeholder='отсутствует'
+							/>
+						) : (
+							lesson.end_sound || (
+								<label className='text-gray-500'>отсутствует</label>
+							)
+						)}
+					</Value>
 				</Field>
 			</div>
 		</Panel>
@@ -391,7 +395,7 @@ const BellsPage = () => {
 												onClick={cancelEditing}
 												className='d-flex align-items-center gap-2'
 											>
-												<XCircleFill size={14} /> Отменить
+												<XCircleFill size={15} /> Отменить
 											</Button>
 											<Button
 												variant='primary'
@@ -419,7 +423,7 @@ const BellsPage = () => {
 								</div>
 							</Panel.Header>
 
-							<div className='p-4 space-y-4 max-h-[60vh] overflow-y-auto'>
+							<Panel.Body className='space-y-4 max-h-[60vh] overflow-y-auto'>
 								{displayLessons.length === 0 ? (
 									<div className='text-gray-500 text-center py-8'>
 										<div className='flex items-center justify-center space-x-2'>
@@ -443,17 +447,17 @@ const BellsPage = () => {
 										return (
 											<div key={lesson_id}>
 												{lesson_id !== 0 && (
-													<div className='flex items-center gap-3 py-2 px-3 text-gray-500 border-b border-dotted'>
-														<div className='text-sm'>Перемена</div>
-														<div
-															className={`font-medium ${
+													<div className='flex items-center gap-3 py-2 px-4 text-gray-500'>
+														<Name>Перемена</Name>
+														<Value
+															className={`${
 																overlap ? 'text-red-500' : 'text-slate-600'
 															}`}
 														>
 															{lessonBreak !== null
 																? `${lessonBreak} мин`
 																: '—'}
-														</div>
+														</Value>
 														{overlap && (
 															<div className='text-red-500 text-sm'>
 																пересечение времени
@@ -468,7 +472,7 @@ const BellsPage = () => {
 										);
 									})
 								)}
-							</div>
+							</Panel.Body>
 
 							{editingLessons && (
 								<div className='p-4 border-t bg-white flex justify-end'>
@@ -477,7 +481,7 @@ const BellsPage = () => {
 										onClick={addLesson}
 										className='d-flex items-center gap-2'
 									>
-										<Plus /> Добавить урок
+										<Plus size={20} /> Добавить урок
 									</Button>
 								</div>
 							)}
@@ -492,7 +496,7 @@ const BellsPage = () => {
 								<Note>Управление шаблонами и быстрыми действиями</Note>
 							</Panel.Header>
 
-							<Panel.Body className='space-y-4'>
+							<Panel.Body className='space-y-5'>
 								<Field>
 									<Name>Рабочее время</Name>
 									<Value>
@@ -513,9 +517,7 @@ const BellsPage = () => {
 										>
 											{bellsSettings.enabled ? 'Включено' : 'Выключено'}
 										</div>
-										<Note>
-											({enabledLessons.length} уроков)
-										</Note>
+										<Note>({enabledLessons.length} уроков)</Note>
 									</div>
 								</Field>
 							</Panel.Body>

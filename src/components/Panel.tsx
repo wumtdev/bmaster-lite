@@ -9,7 +9,7 @@ export let Panel = ({
 }: HTMLAttributes<HTMLDivElement>) => {
 	return (
 		<Card
-			className={cn('shadow rounded-lg overflow-hidden border-none', className)}
+			className={cn('shadow rounded-2xl overflow-hidden border flex flex-col', className)}
 			{...attrs}
 		>
 			{children}
@@ -37,7 +37,7 @@ Panel.Body = ({
 	...attrs
 }: HTMLAttributes<HTMLDivElement>) => {
 	return (
-		<div {...attrs} className={cn('p-4', className)}>
+		<div {...attrs} className={cn('p-4 bg-gray-50 flex-1', className)}>
 			{children}
 		</div>
 	);
