@@ -25,11 +25,8 @@ jobs:
       - name: Build Vite app
         run: npm run build
 
-      - name: Archive build
-        run: tar -czf frontend-dist.tar.gz -C dist .
-
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend-dist.tar.gz
+          path: dist/**
