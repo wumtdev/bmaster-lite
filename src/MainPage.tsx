@@ -25,6 +25,7 @@ import DraggableCard from '@/components/DraggableCard';
 import * as icoms from '@/api/icoms';
 import { IcomQuery } from '@/pages/icoms/queries';
 import SettingsPage from './pages/SettingsPage';
+import { Note } from './components/text';
 
 export default function MainPage() {
 	const {
@@ -81,16 +82,18 @@ export default function MainPage() {
 		<LocalUserProvider localUser={localUser}>
 			<div className='flex flex-col relative w-screen h-screen overflow-y-auto'>
 				{/* Шапка */}
-				<Navbar expand='lg' className='px-3 bg-[#F1F5F9] shadow-md'>
+				<Navbar expand='lg' className='p-0 bg-[#F1F5F9] shadow-md'>
 					<Container>
 						{/* Brand Section */}
 						<Navbar.Brand className='mr-14'>
 							<Link
 								to='/'
-								className='flex flex-col items-center font-semibold text-slate-700'
+								className='flex gap-2 items-center font-semibold text-3xl text-slate-700'
 							>
-								<BellFill size={70} className="text-[#2563EB] hover:animate-ring origin-top" />
-    							<span className="text-[#0F172A]">BMaster</span>
+								<BellFill
+									className='origin-top'
+								/>
+								<span className=''>BMaster</span>
 							</Link>
 						</Navbar.Brand>
 
@@ -99,30 +102,30 @@ export default function MainPage() {
 						<Navbar.Collapse id='main-navbar'>
 							{/* Navigation Links */}
 							<Nav className='me-auto text-xl flex gap-3'>
-								<Link to='/' className='d-flex flex-row items-center m-2 gap-2'>
+								<Link to='/' className='flex items-center m-1 gap-2'>
 									<Bell /> Звонки
 								</Link>
 								<Link
 									to='/announcements'
-									className='d-flex flex-row items-center m-2 gap-2'
+									className='flex items-center m-1 gap-2'
 								>
 									<Mic /> Объявления
 								</Link>
 								<Link
 									to='/sounds'
-									className='d-flex flex-row items-center m-2 gap-2'
+									className='flex items-center m-1 gap-2'
 								>
 									<MusicNoteList /> Звуки
 								</Link>
 								<Link
 									to='/calendar'
-									className='d-flex flex-row items-center m-2 gap-2'
+									className='flex items-center m-1 gap-2'
 								>
 									<Calendar /> Календарь
 								</Link>
 								<Link
 									to='/settings'
-									className='d-flex flex-row items-center m-2 gap-2'
+									className='flex items-center m-1 gap-2'
 								>
 									<Gear /> Настройки
 								</Link>
@@ -131,10 +134,10 @@ export default function MainPage() {
 							{/* User Info Section */}
 
 							{localUser && (
-								<div className='d-flex flex-col text-sm text-gray-700 mt-4 mb-4'>
-									<div className='d-flex flex-row mb-1'>{profile}</div>
+								<div className='flex flex-col text-sm text-gray-700 mt-4 mb-4'>
+									<div className='flex mb-1'>{profile}</div>
 									<div
-										className='d-flex flex-row mb-1 cursor-pointer'
+										className='flex mb-1 cursor-pointer'
 										onClick={handleLogout}
 									>
 										<DoorOpen size={20} className='mr-2' />
@@ -160,7 +163,7 @@ export default function MainPage() {
 					</Container>
 				</main>
 				{/* Подвал */}
-				<footer className='bg-slate-400 flex flex-row p-10 font-bold'>
+				<footer className='bg-slate-400 flex p-10 font-bold'>
 					BMaster
 				</footer>
 			</div>
@@ -186,7 +189,7 @@ export default function MainPage() {
 					</span>
 				}
 			>
-				<Card.Body className='overflow-y-auto max-h-[60vh]'>
+				<Card.Body className='overflow-y-clip hidden truncate min-h-0 max-h-[60vh]'>
 					{mainIcom ? (
 						<div className='flex flex-col gap-2'>
 							{mainIcom.playing && <IcomQuery queryInfo={mainIcom.playing} />}
@@ -194,7 +197,7 @@ export default function MainPage() {
 								<IcomQuery key={q.id} queryInfo={q} />
 							))}
 							{!mainIcom.playing && mainIcom.queue.length === 0 && (
-								<>Очередь воспроизведения пуста</>
+								<Note>Очередь воспроизведения пуста</Note>
 							)}
 						</div>
 					) : (
