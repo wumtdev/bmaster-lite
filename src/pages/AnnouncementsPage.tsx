@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Card } from 'react-bootstrap';
-import { Mic, StopCircle, Loader2 } from 'lucide-react';
+import { Card, Spinner } from 'react-bootstrap';
+import { Mic, StopCircle } from 'react-bootstrap-icons';
 import { WS_BASE_URL } from '@/api';
 import { H1, H2, Note } from '@/components/text';
 import Panel from '@/components/Panel';
@@ -242,7 +242,7 @@ export default function AnnouncementsPage(): JSX.Element {
 
 							<div className='relative z-10 flex items-center justify-center'>
 								{status === 'connecting' && (
-									<Loader2 className='animate-spin' size={44} />
+									<Spinner size={44} />
 								)}
 								{status === 'idle' && <Mic size={44} />}
 								{status === 'started' && <StopCircle size={44} />}
