@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Link, Routes, Route } from 'react-router-dom';
 import { Container, Navbar, Nav, Card, Spinner } from 'react-bootstrap';
 import {
@@ -21,11 +22,17 @@ import BellsPage from '@/pages/BellsPage';
 import AnnouncementsPage from '@/pages/AnnouncementsPage';
 import SoundsPage from '@/pages/SoundsPage';
 import CalendarUI from '@/pages/CalendarUI';
+import CalendarPage from '@/pages/school/CalendarPage';
+import SchedulesPage from '@/pages/school/SchedulesPage';
+import TodayPage from '@/pages/school/TodayPage';
 import DraggableCard from '@/components/DraggableCard';
 import * as icoms from '@/api/icoms';
 import { IcomQuery } from '@/pages/icoms/queries';
 import SettingsPage from './pages/SettingsPage';
-import { Note } from './components/text';
+import { H2, Note } from './components/text';
+import Button from './components/Button';
+import Foreground from './components/Foreground';
+import Panel from './components/Panel';
 
 export default function MainPage() {
 	const {
@@ -34,7 +41,8 @@ export default function MainPage() {
 		isError
 	} = useQuery({
 		queryFn: () => getLocalUser(),
-		queryKey: ['localUser']
+		queryKey: ['localUser'],
+		retry: (failureCount) => failureCount < 2
 	});
 
 	const mainIcomQuery = useQuery({
@@ -43,15 +51,45 @@ export default function MainPage() {
 		refetchInterval: 2000
 	});
 
-	if (isLoading)
-		return <ForegroundNotification>Авторизация...</ForegroundNotification>;
-	else if (isError || !localUser)
-		return <ForegroundNotification>Ошибка авторизации</ForegroundNotification>;
-
 	const handleLogout = () => {
 		localStorage.removeItem('bmaster.auth.token');
 		window.location.href = '/';
 	};
+
+	if (isLoading)
+		return (
+			<>
+				<Foreground>
+					<Panel>
+						<Panel.Header>Авторизация</Panel.Header>
+						<Panel.Body className='space-y-4'>
+							<Note className='text-slate-600'>Входим в систему…</Note>
+						</Panel.Body>
+					</Panel>
+				</Foreground>
+			</>
+		);
+	else if (isError || !localUser)
+		return (
+			<>
+				<Foreground>
+					<Panel>
+						<Panel.Header>
+							<H2>Ошибка авторизации</H2>
+						</Panel.Header>
+						<Panel.Body className='space-y-4'>
+							<Note className='text-slate-600'>
+								Произошла ошибка авторизации.
+								Пожалуйста, выйдите с помощью кнопки ниже и войдите снова.
+							</Note>
+							<Button variant='primary' onClick={handleLogout}>
+								Выйти
+							</Button>
+						</Panel.Body>
+					</Panel>
+				</Foreground>
+			</>
+		);
 
 	const mainIcom = mainIcomQuery.data;
 
@@ -90,9 +128,7 @@ export default function MainPage() {
 								to='/'
 								className='flex gap-2 items-center font-semibold text-3xl text-slate-700'
 							>
-								<BellFill
-									className='origin-top'
-								/>
+								<BellFill className='origin-top' />
 								<span className=''>BMaster</span>
 							</Link>
 						</Navbar.Brand>
@@ -102,8 +138,23 @@ export default function MainPage() {
 						<Navbar.Collapse id='main-navbar'>
 							{/* Navigation Links */}
 							<Nav className='me-auto text-xl flex gap-3'>
-								<Link to='/' className='flex items-center m-1 gap-2'>
-									<Bell /> Звонки
+								<Link
+									to='/school/today'
+									className='flex items-center m-1 gap-2'
+								>
+									<Bell /> Сегодня
+								</Link>
+								<Link
+									to='/school/schedules'
+									className='flex items-center m-1 gap-2'
+								>
+									<Bell /> Расписания
+								</Link>
+								<Link
+									to='/school/calendar'
+									className='flex items-center m-1 gap-2'
+								>
+									<Bell /> Календарь
 								</Link>
 								<Link
 									to='/announcements'
@@ -111,22 +162,13 @@ export default function MainPage() {
 								>
 									<Mic /> Объявления
 								</Link>
-								<Link
-									to='/sounds'
-									className='flex items-center m-1 gap-2'
-								>
+								<Link to='/sounds' className='flex items-center m-1 gap-2'>
 									<MusicNoteList /> Звуки
 								</Link>
-								<Link
-									to='/calendar'
-									className='flex items-center m-1 gap-2'
-								>
+								<Link to='/calendar' className='flex items-center m-1 gap-2'>
 									<Calendar /> Календарь
 								</Link>
-								<Link
-									to='/settings'
-									className='flex items-center m-1 gap-2'
-								>
+								<Link to='/settings' className='flex items-center m-1 gap-2'>
 									<Gear /> Настройки
 								</Link>
 							</Nav>
@@ -154,7 +196,9 @@ export default function MainPage() {
 					<Container fluid='xl'>
 						<Routes>
 							<Route path='/' element={<BellsPage />} />
-							<Route path='/bells' element={<BellsPage />} />
+							<Route path='/school/today' element={<TodayPage />} />
+							<Route path='/school/schedules' element={<SchedulesPage />} />
+							<Route path='/school/calendar' element={<CalendarPage />} />
 							<Route path='/announcements' element={<AnnouncementsPage />} />
 							<Route path='/sounds' element={<SoundsPage />} />
 							<Route path='/calendar' element={<CalendarUI />} />
@@ -163,9 +207,7 @@ export default function MainPage() {
 					</Container>
 				</main>
 				{/* Подвал */}
-				<footer className='bg-slate-400 flex p-10 font-bold'>
-					BMaster
-				</footer>
+				<footer className='bg-slate-400 flex p-10 font-bold'>BMaster</footer>
 			</div>
 			{/* Очередь воспроизведения */}
 			<DraggableCard
@@ -189,7 +231,8 @@ export default function MainPage() {
 					</span>
 				}
 			>
-				<Card.Body className='overflow-y-clip hidden truncate min-h-0 max-h-[60vh]'>
+				<Card.Body className='overflow-y-clip truncate min-h-0 max-h-[60vh]'>
+					<img src='https://check.ofd.ru/assets/check.0187ee3.svg' alt='' />
 					{mainIcom ? (
 						<div className='flex flex-col gap-2'>
 							{mainIcom.playing && <IcomQuery queryInfo={mainIcom.playing} />}

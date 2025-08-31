@@ -72,14 +72,6 @@ function OperateLoginForm() {
 				</Form.Control.Feedback>
 			</Form.Group>
 
-			<Form.Group className='mb-3'>
-				<Form.Check
-					{...register('remember')}
-					type='checkbox'
-					label='Запомнить меня'
-				/>
-			</Form.Group>
-
 			{errorMessage && (
 				<Alert variant='danger' className='mb-3 text-center'>
 					{errorMessage}

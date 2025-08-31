@@ -16,15 +16,15 @@ export const Button = ({
 		case 'danger':
 		case 'outline-danger':
 			// variantClass = 'bg-red-600 shadow-red-600 hover:bg-red-700';
-			variantClass = 'bg-red-600 hover:bg-red-700';
+			variantClass = 'bg-red-600 hover:bg-red-500';
 			break;
 		case 'secondary':
 			// variantClass = 'bg-gray-500 shadow-gray-500 hover:bg-gray-600';
-			variantClass = 'bg-gray-500 hover:bg-gray-600';
+			variantClass = 'bg-gray-500 hover:bg-gray-400';
 			break;
 		case 'success':
 			// variantClass = 'bg-green-600 shadow-green-600 hover:bg-green-600';
-			variantClass = 'bg-green-600 hover:bg-green-700';
+			variantClass = 'bg-green-600 hover:bg-green-500';
 			break;
 		default:
 			// variantClass = 'bg-blue-500 shadow-blue-500 hover:bg-blue-600';
@@ -35,7 +35,7 @@ export const Button = ({
 		<button
 			className={cn(
 				variantClass,
-				'flex shadow-md border-blue-90000 items-center justify-center gap-2 text-white py-2 px-6 rounded-lg transition-all duration-300',
+				'flex shadow-md items-center justify-center gap-2 text-white py-2 px-6 rounded-lg transition-all duration-300',
 				className
 			)}
 			{...attrs}
