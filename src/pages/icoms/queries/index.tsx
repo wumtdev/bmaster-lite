@@ -75,9 +75,7 @@ export function IcomQuery({
 			{/* Основной контент */}
 			<div className='flex flex-col p-2 w-full'>
 				<div className='flex flex-row'>
-					<div className='flex flex-col'>
-						{content}
-					</div>
+					<div className='flex flex-col'>{content}</div>
 					<div className='flex flex-col ml-auto'>
 						{queryInfo.duration && (
 							<span className='ml-3 text-sm text-gray-500'>
@@ -109,7 +107,7 @@ export function IcomQuery({
 			<button
 				onClick={() => cancelQuery.mutate()}
 				disabled={cancelQuery.isPending}
-				className='w-6 h-full bg-red-600 text-white flex items-center justify-center rounded-r-lg hover:bg-red-700'
+				className='p-[0.1rem] h-full bg-red-600 text-white flex items-center justify-center rounded-r-lg hover:bg-red-700'
 			>
 				{cancelQuery.isPending ? (
 					<Spinner className='w-4 h-4' />

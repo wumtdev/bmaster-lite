@@ -79,8 +79,8 @@ export default function MainPage() {
 						</Panel.Header>
 						<Panel.Body className='space-y-4'>
 							<Note className='text-slate-600'>
-								Произошла ошибка авторизации.
-								Пожалуйста, выйдите с помощью кнопки ниже и войдите снова.
+								Произошла ошибка авторизации. Пожалуйста, выйдите с помощью
+								кнопки ниже и войдите снова.
 							</Note>
 							<Button variant='primary' onClick={handleLogout}>
 								Выйти
@@ -232,7 +232,6 @@ export default function MainPage() {
 				}
 			>
 				<Card.Body className='overflow-y-clip truncate min-h-0 max-h-[60vh]'>
-					<img src='https://check.ofd.ru/assets/check.0187ee3.svg' alt='' />
 					{mainIcom ? (
 						<div className='flex flex-col gap-2'>
 							{mainIcom.playing && <IcomQuery queryInfo={mainIcom.playing} />}

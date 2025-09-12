@@ -1,11 +1,18 @@
 // @ts-nocheck
 import {
+	createSchedule,
 	getSchedules,
 	ScheduleInfo,
 	ScheduleLesson
 } from '@/api/school/schedules';
 import { cn } from '@/utils';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+	createContext,
+	useContext,
+	useEffect,
+	useRef,
+	useState
+} from 'react';
 import {
 	BellsSettings,
 	getBellsSettings,
@@ -22,7 +29,15 @@ import {
 	useQueryClient,
 	UseQueryResult
 } from '@tanstack/react-query';
-import { Card, Form, Spinner, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import {
+	Card,
+	Form,
+	Spinner,
+	OverlayTrigger,
+	Tooltip,
+	Overlay,
+	Popover
+} from 'react-bootstrap';
 import {
 	Floppy,
 	FloppyFill,
@@ -42,6 +57,7 @@ import { Panel } from '@/components/Panel';
 import { H1, H2, Name, Note, Value } from '@/components/text';
 import { Button } from '@/components/Button';
 import Field from '@/components/Field';
+import TextProperty from '@/components/TextProperty';
 
 /* ---------------- Context ---------------- */
 export type SchedulesContextData = {
@@ -128,6 +144,14 @@ const LessonCard = ({
 								value={lesson.start_at}
 								onChange={(e) => {
 									lesson.start_at = e.target.value;
+
+									editingLessons.sort((a, b) => {
+										if (a.start_at === b.start_at) return 0;
+										if (a.start_at === '') return 1;
+										if (b.start_at === '') return -1;
+										return countMinutes(a) - countMinutes(b);
+									});
+
 									updateEditingLessons();
 								}}
 								className={`px-2 py-1 border rounded ${
@@ -555,10 +579,12 @@ const BellsPage = () => {
 const SchedulesPage = () => {
 	const schedulesQuery = useQuery({
 		queryFn: () => getSchedules(),
-		queryKey: ['school', 'schedules']
+		queryKey: ['school.schedules']
 	});
 
 	const schedules = schedulesQuery.data;
+
+	const queryClient = useQueryClient();
 
 	// id of schedule selected by user
 	const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(
@@ -578,21 +604,50 @@ const SchedulesPage = () => {
 		null
 	);
 
+	const [controllingScheduleId, setControllingScheduleId] = useState<
+		number | null
+	>(null);
+	const controllingScheduleRef = useRef(null);
+
 	const isEditing = editingLessons !== null;
 
 	// mutation of schedule was not saved
 	// makes user able to save changes
 	const [unsaved, setUnsaved] = useState<boolean>(false);
 
-	// call when any changes were applied
 	const touch = () => {
 		if (!unsaved) setUnsaved(true);
 	};
 
+	// call after any changes
+	// it sorts lessons and rerenders list
 	const updateEditingLessons = () => {
 		setEditingLessons((prev) => Array.from(prev));
 		touch();
 	};
+
+	useEffect(() => console.log(editingLessons), [editingLessons]);
+
+	const addLesson = () => {
+		editingLessons.push({
+			start_at: '',
+			start_sound: '',
+			end_at: '',
+			end_sound: ''
+		});
+		updateEditingLessons();
+	};
+
+	const [newScheduleName, setNewScheduleName] = useState<string | null>(null);
+
+	const createScheduleMutation = useMutation({
+		mutationKey: ['school.schedules.create'],
+		mutationFn: () => createSchedule({ name: newScheduleName, lessons: [] }),
+		onSuccess: () => {
+			setNewScheduleName(null);
+			queryClient.invalidateQueries(['school.schedules']);
+		}
+	});
 
 	// call when user selects other schedule
 	useEffect(() => {
@@ -637,16 +692,78 @@ const SchedulesPage = () => {
 										key={schedule.id}
 									>
 										<Value>{schedule.name}</Value>
-										<button className='ml-auto w-6 h-6 aspect-square hover:bg-[rgba(0,0,0,0.2)] rounded-[0.2rem]'>
+										{/* <button
+											onClick={(e) => {
+												// if (controllingScheduleId === schedule.id)
+												// 	setControllingScheduleId(null);
+												// else setControllingScheduleId(schedule.id);
+												setControllingScheduleId(schedule.id);
+												e.preventDefault();
+												e.stopPropagation();
+											}}
+											ref={
+												controllingScheduleId === schedule.id
+													? controllingScheduleRef
+													: null
+											}
+											className='ml-auto w-6 h-6 aspect-square hover:bg-[rgba(0,0,0,0.2)] rounded-[0.2rem]'
+										>
 											<ThreeDotsVertical className='m-auto' />
 										</button>
+										<Overlay
+											target={controllingScheduleRef.current}
+											show={controllingScheduleId === schedule.id}
+											placement='right'
+											containerPadding={16}
+											container={document.body}
+										>
+											{(props) => (
+												<Popover id='overlay-example' {...props}>
+													My Tooltip
+												</Popover>
+											)}
+										</Overlay> */}
 									</div>
 							  ))
 							: 'Загрузка...'}
-						<Button className='mt-20 ml-auto px-[2rem]'>
-							<Plus size={24} /> Создать
-						</Button>
+
+						<div className='mt-20'>
+							{newScheduleName !== null ? (
+								<input
+									type='text'
+									value={newScheduleName}
+									onChange={(e) => setNewScheduleName(e.target.value)}
+									className={`px-2 py-1 min-w-12 border rounded ${
+										newScheduleName === ''
+											? 'ring-2 ring-red-300'
+											: 'border-gray-200'
+									}`}
+									onBlur={() => setNewScheduleName(null)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') {
+											createScheduleMutation.mutate();
+											e.preventDefault();
+										}
+										if (e.key === 'Escape') {
+											setNewScheduleName(null);
+										}
+									}}
+									autoFocus
+									disabled={createScheduleMutation.isPending}
+								/>
+							) : (
+								<Button
+									onClick={() => setNewScheduleName('')}
+									className='ml-auto px-[2rem]'
+								>
+									<Plus size={24} /> Создать
+								</Button>
+							)}
+						</div>
 					</Panel.Body>
+					<div className='border-t p-2'>
+						<TextProperty value='gel' onSubmit={(v) => console.log(v)} />
+					</div>
 				</Panel>
 				<Panel className='min-w-[32rem] max-h-[55rem]'>
 					<Panel.Header>
@@ -662,7 +779,7 @@ const SchedulesPage = () => {
 							)}
 						</H2>
 					</Panel.Header>
-					<Panel.Body className='overflow-y-scroll'>
+					<Panel.Body className='overflow-y-auto'>
 						{editingLessons ? (
 							editingLessons.map((lesson, lesson_num) => {
 								let breakDisplay = null;
@@ -706,11 +823,17 @@ const SchedulesPage = () => {
 							<Note>Выберите расписание для редактирования</Note>
 						)}
 					</Panel.Body>
-					<div className='border-t p-3'>
-						<Button variant='secondary' className='ml-auto px-[2rem]'>
-							<Plus size={24} /> Добавить урок
-						</Button>
-					</div>
+					{editingLessons && (
+						<div className='border-t p-3'>
+							<Button
+								onClick={() => addLesson()}
+								variant='secondary'
+								className='ml-auto px-[2rem]'
+							>
+								<Plus size={24} /> Добавить урок
+							</Button>
+						</div>
+					)}
 				</Panel>
 			</div>
 		</div>
