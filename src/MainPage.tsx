@@ -7,8 +7,9 @@ import {
 	Gear,
 	BellFill,
 	Bell,
-	Calendar,
+	CalendarDate,
 	Mic,
+	List,
 	MusicNoteList,
 	PlayFill,
 	PersonCircle,
@@ -148,13 +149,13 @@ export default function MainPage() {
 									to='/school/schedules'
 									className='flex items-center m-1 gap-2'
 								>
-									<Bell /> Расписания
+									<List /> Расписания
 								</Link>
 								<Link
 									to='/school/calendar'
 									className='flex items-center m-1 gap-2'
 								>
-									<Bell /> Календарь
+									<CalendarDate /> Календарь
 								</Link>
 								<Link
 									to='/announcements'
@@ -164,9 +165,6 @@ export default function MainPage() {
 								</Link>
 								<Link to='/sounds' className='flex items-center m-1 gap-2'>
 									<MusicNoteList /> Звуки
-								</Link>
-								<Link to='/calendar' className='flex items-center m-1 gap-2'>
-									<Calendar /> Календарь
 								</Link>
 								<Link to='/settings' className='flex items-center m-1 gap-2'>
 									<Gear /> Настройки

@@ -1,9 +1,11 @@
 // @ts-nocheck
 import {
 	createSchedule,
+	updateSchedule,
 	getSchedules,
 	ScheduleInfo,
-	ScheduleLesson
+	ScheduleLesson,
+	ScheduleUpdateRequest
 } from '@/api/school/schedules';
 import { cn } from '@/utils';
 import React, {
@@ -50,7 +52,8 @@ import {
 	XCircle,
 	XCircleFill,
 	XLg,
-	XOctagon
+	XOctagon,
+	XSquareFill
 } from 'react-bootstrap-icons';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { Panel } from '@/components/Panel';
@@ -149,7 +152,7 @@ const LessonCard = ({
 										if (a.start_at === b.start_at) return 0;
 										if (a.start_at === '') return 1;
 										if (b.start_at === '') return -1;
-										return countMinutes(a) - countMinutes(b);
+										return countMinutes(a.start_at) - countMinutes(b.start_at);
 									});
 
 									updateEditingLessons();
@@ -201,7 +204,7 @@ const LessonCard = ({
 								type='time'
 								value={lesson.end_at}
 								onChange={(e) => {
-									lesson.start_at = e.target.value;
+									lesson.end_at = e.target.value;
 									updateEditingLessons();
 								}}
 								className={`px-2 py-1 border rounded ${
@@ -626,6 +629,15 @@ const SchedulesPage = () => {
 		touch();
 	};
 
+	const cancelEditing = () => {
+		if (selectedSchedule !== null) {
+			setEditingLessons(
+				selectedSchedule.lessons.map((l) => Object.assign({}, l))
+			);
+			setUnsaved(false);
+		}
+	};
+
 	useEffect(() => console.log(editingLessons), [editingLessons]);
 
 	const addLesson = () => {
@@ -649,8 +661,19 @@ const SchedulesPage = () => {
 		}
 	});
 
+	const saveScheduleLessonsMutation = useMutation({
+		mutationKey: ['school.schedules.save'],
+		mutationFn: () =>
+			updateSchedule(selectedScheduleId, { lessons: editingLessons }),
+		onSuccess: () => {
+			setUnsaved(false);
+			queryClient.invalidateQueries(['school.schedules']);
+		}
+	});
+
 	// call when user selects other schedule
 	useEffect(() => {
+		setUnsaved(false);
 		if (selectedScheduleId === null) {
 			setEditingLessons(null);
 		} else {
@@ -692,6 +715,7 @@ const SchedulesPage = () => {
 										key={schedule.id}
 									>
 										<Value>{schedule.name}</Value>
+
 										{/* <button
 											onClick={(e) => {
 												// if (controllingScheduleId === schedule.id)
@@ -761,9 +785,6 @@ const SchedulesPage = () => {
 							)}
 						</div>
 					</Panel.Body>
-					<div className='border-t p-2'>
-						<TextProperty value='gel' onSubmit={(v) => console.log(v)} />
-					</div>
 				</Panel>
 				<Panel className='min-w-[32rem] max-h-[55rem]'>
 					<Panel.Header>
@@ -824,11 +845,35 @@ const SchedulesPage = () => {
 						)}
 					</Panel.Body>
 					{editingLessons && (
-						<div className='border-t p-3'>
+						<div className='border-t p-3 flex justify-end gap-2'>
+							{unsaved && (
+								<div className='flex gap-[0.15rem]'>
+									<Button
+										className='rounded-r-none px-3'
+										onClick={() => cancelEditing()}
+										variant='danger'
+										disabled={saveScheduleLessonsMutation.isPending}
+									>
+										<XCircleFill size={24} />
+									</Button>
+									<Button
+										className='rounded-l-none px-3 gap-[1rem]'
+										onClick={() => saveScheduleLessonsMutation.mutate()}
+										variant='success'
+									>
+										{saveScheduleLessonsMutation.isPending ? (
+											<Spinner />
+										) : (
+											<FloppyFill size={24} />
+										)}
+										Сохранить
+									</Button>
+								</div>
+							)}
 							<Button
 								onClick={() => addLesson()}
 								variant='secondary'
-								className='ml-auto px-[2rem]'
+								className='px-[2rem]'
 							>
 								<Plus size={24} /> Добавить урок
 							</Button>

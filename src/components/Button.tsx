@@ -2,15 +2,18 @@ import { cn } from '@/utils';
 import { HTMLAttributes } from 'react';
 
 export type ButtonProps = {
-	variant: 'primary' | 'danger' | 'outline-danger' | 'secondary' | 'success';
+	variant?: 'primary' | 'danger' | 'outline-danger' | 'secondary' | 'success';
+	disabled?: boolean;
 } & HTMLAttributes<HTMLButtonElement>;
 
 export const Button = ({
 	children,
 	className,
 	variant,
+	disabled,
 	...attrs
 }: ButtonProps) => {
+	// variant = variant || 'secondary';
 	let variantClass = '';
 	switch (variant) {
 		case 'danger':
@@ -20,11 +23,11 @@ export const Button = ({
 			break;
 		case 'secondary':
 			// variantClass = 'bg-gray-500 shadow-gray-500 hover:bg-gray-600';
-			variantClass = 'bg-gray-500 hover:bg-gray-400';
+			variantClass = 'bg-gray-600 hover:bg-gray-500';
 			break;
 		case 'success':
 			// variantClass = 'bg-green-600 shadow-green-600 hover:bg-green-600';
-			variantClass = 'bg-green-600 hover:bg-green-500';
+			variantClass = 'bg-green-700 hover:bg-green-600';
 			break;
 		default:
 			// variantClass = 'bg-blue-500 shadow-blue-500 hover:bg-blue-600';
@@ -33,9 +36,11 @@ export const Button = ({
 
 	return (
 		<button
+			disabled={disabled}
 			className={cn(
 				variantClass,
 				'flex shadow-md items-center justify-center gap-2 text-white py-2 px-6 rounded-lg transition-all duration-300',
+				disabled ? 'opacity-50 pointer-events-none' : '',
 				className
 			)}
 			{...attrs}

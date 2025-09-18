@@ -13,15 +13,26 @@ export type ScheduleInfo = {
 	lessons: ScheduleLesson[];
 };
 
-export type CreateScheduleRequest = {
+export type ScheduleCreateRequest = {
 	name: string;
 	lessons: ScheduleLesson[];
+};
+
+export type ScheduleUpdateRequest = {
+	name?: string;
+	lessons?: ScheduleLesson[];
 };
 
 export const getSchedules = async (): Promise<ScheduleInfo[]> =>
 	(await api.get<ScheduleInfo[]>('school/schedules')).data;
 
 export const createSchedule = async (
-	req: CreateScheduleRequest
+	req: ScheduleCreateRequest
 ): Promise<ScheduleInfo> =>
 	(await api.post<ScheduleInfo>('school/schedules', req)).data;
+
+export const updateSchedule = async (
+	id: number,
+	req: ScheduleUpdateRequest
+): Promise<ScheduleInfo> =>
+	(await api.patch<ScheduleInfo>(`school/schedules/${id}`, req)).data;
