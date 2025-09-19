@@ -14,23 +14,29 @@ import {
 import Panel from '@/components/Panel';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import {
+	BellSlashFill,
 	CaretLeftFill,
 	CaretLeftSquare,
 	CaretRightFill,
-	CaretRightSquare
+	CaretRightSquare,
+	ClockFill,
+	List
 } from 'react-bootstrap-icons';
-import { getMonthDayCount, cn, fromDateFormat } from '@/utils';
-import { useQuery } from '@tanstack/react-query';
+import { getMonthDayCount, cn, fromDateFormat, formatDate } from '@/utils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
 	getAssignmentsByDateRange,
 	ScheduleAssignmentInfo
 } from '@/api/school/assignments';
 import {
+	createOverride,
 	getOverridesByDateRange,
 	ScheduleOverrideInfo
 } from '@/api/school/overrides';
 
 const CalendarPage = () => {
+	const queryClient = useQueryClient();
+
 	const today = new Date();
 
 	const [dayA, setDayA] = useState<number | null>(today.getDate());
@@ -55,6 +61,11 @@ const CalendarPage = () => {
 	const [ringStates, setRingStates] = useState([true, false, false, false]);
 	const [brushing, setBrushing] = useState<boolean>(false);
 
+	const startDate: Date | null =
+		startDay !== null ? new Date(year, monthIndex, startDay) : null;
+	const endDate: Date | null =
+		endDay !== null ? new Date(year, monthIndex, endDay) : null;
+
 	const toggleRing = (index: number) => {
 		const newStates = [...ringStates];
 		newStates[index] = !newStates[index];
@@ -62,6 +73,15 @@ const CalendarPage = () => {
 	};
 
 	const weekdayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+	const weekdayNormalMap = {
+		0: 6,
+		1: 0,
+		2: 1,
+		3: 2,
+		4: 3,
+		5: 4,
+		6: 5
+	};
 	const weekdayApiNames = [
 		'monday',
 		'tuesday',
@@ -125,6 +145,25 @@ const CalendarPage = () => {
 		queryFn: () => getOverridesByDateRange(monthStart, monthEnd)
 	});
 
+	const overridesMutation = useMutation({
+		mutationKey: ['school.overrides.month', year, monthIndex],
+		mutationFn: ({ muteAllLessons, muteLessons }) =>
+			createOverride(
+				{
+					at: formatDate(startDate),
+					mute_all_lessons: muteAllLessons,
+					mute_lessons: muteLessons
+				},
+				endDate !== null ? formatDate(endDate) : undefined
+			),
+		onSuccess: () =>
+			queryClient.invalidateQueries([
+				'school.overrides.month',
+				year,
+				monthIndex
+			])
+	});
+
 	let overridesByDay: Record<number, ScheduleOverrideInfo> | null = null;
 	if (overridesQuery.isFetched && overridesQuery.data) {
 		overridesByDay = {};
@@ -166,6 +205,8 @@ const CalendarPage = () => {
 	useEffect(
 		() =>
 			console.log(
+				monthStart,
+				monthStart.getDay(),
 				assignmentsByDay,
 				overridesByDay,
 				schedulesById,
@@ -185,15 +226,28 @@ const CalendarPage = () => {
 	// 	}
 	// }
 
+	let muteAllLessons = false;
+	let muteLessons = new Set();
+	if (overridesByDay) {
+		Object.entries(overridesByDay).forEach(([day, override]) => {
+			if (
+				day == startDay ||
+				(endDay !== null && day >= startDay && day <= endDay)
+			) {
+				if (override.mute_all_lessons) muteAllLessons = true;
+				for (const mutedLesson of override.mute_lessons) {
+					muteLessons.add(mutedLesson);
+				}
+			}
+		});
+	}
+
 	return (
 		<div className='mx-auto max-w-7xl w-fit p-6'>
 			<H1>Календарь</H1>
 			<div className='flex gap-4'>
 				{/* Calendar */}
 				<Panel className='mb-auto'>
-					{/* <div className='flex justify-between items-center mb-2'>
-						<span className='fw-bold'>Сентябрь 2025</span>
-					</div> */}
 					<Panel.Header className='flex px-4 py-2'>
 						<H2 className='m-auto flex items-center gap-3'>
 							<button
@@ -222,27 +276,34 @@ const CalendarPage = () => {
 						</div>
 
 						<div className='grid grid-cols-7 select-none text-center gap-[0.2rem]'>
+							{[...Array(weekdayNormalMap[monthStart.getDay()])].map((_, i) => (
+								<div />
+							))}
 							{[...Array(monthDayCount)].map((_, i) => {
 								const day = i + 1;
 								const isSelected =
 									startDay === day ||
 									(endDay !== null ? day >= startDay && day <= endDay : false);
+								const overrides =
+									overridesByDay !== null ? overridesByDay[day] : null;
+								const assignment =
+									assignmentsByDay !== null ? assignmentsByDay[day] : null;
 								return (
 									<div
 										key={day}
-										className={
-											'w-10 h-10 flex cursor-pointer' +
-											(isSelected
+										className={cn(
+											'w-10 relative h-10 flex cursor-pointer',
+											isSelected
 												? ' bg-red-200' +
-												  (endDay === null
-														? ' rounded-lg'
-														: day === startDay
-														? ' rounded-l-lg'
-														: day === endDay
-														? ' rounded-r-lg'
-														: '')
-												: ' hover:bg-gray-200 rounded-lg')
-										}
+														(endDay === null
+															? ' rounded-lg'
+															: day === startDay
+															? ' rounded-l-lg'
+															: day === endDay
+															? ' rounded-r-lg'
+															: '')
+												: ' hover:bg-gray-200 rounded-lg'
+										)}
 										onMouseDown={(e) => {
 											if (e.shiftKey) {
 												if (day !== dayA) setDayB(day);
@@ -257,7 +318,28 @@ const CalendarPage = () => {
 												setDayB(day);
 										}}
 									>
-										<span className='m-auto'>{day}</span>
+										<span
+											className={cn(
+												'm-auto',
+												monthIndex === today.getMonth() &&
+													day === today.getDate() &&
+													'text-blue-500 font-bold'
+											)}
+										>
+											{day}
+										</span>
+										<div className='absolute flex right-1 bottom-[0.25rem] text-[0.6rem]'>
+											{overrides && (
+												<BellSlashFill
+													className={
+														overrides.mute_all_lessons
+															? 'text-red-400'
+															: 'text-gray-600'
+													}
+												/>
+											)}
+											{assignment && <ClockFill className='text-blue-400' />}
+										</div>
 									</div>
 								);
 							})}
@@ -268,55 +350,68 @@ const CalendarPage = () => {
 				{/* Right panel */}
 				<div className='flex flex-col gap-3'>
 					<Panel>
-						<Panel.Header className='p-2 bg-gray-50'>
+						<Panel.Header className='py-2 px-3'>
 							<H2 className='flex'>
-								<Form.Check
+								{/* <Form.Check
 									type='switch'
 									disabled={false}
 									className='my-auto'
 									// onChange={(e) => switchEnabled.mutate(e.target.checked)}
 									// checked={false}
-								/>
+								/> */}
 								Звонки
 							</H2>
 						</Panel.Header>
-						<Panel.Body className='bg-white p-3 flex flex-col gap-1'>
+						<Panel.Body className='p-3 flex flex-col gap-1'>
 							<div className='flex items-center text-lg'>
 								<Form.Check
 									type='switch'
-									disabled={false}
+									disabled={overridesByDay === null}
 									className='my-auto'
-									// onChange={(e) => switchEnabled.mutate(e.target.checked)}
-									// checked={false}
+									onChange={(e) =>
+										overridesMutation.mutate({
+											muteAllLessons: !e.target.checked,
+											muteLessons: Array.from(muteLessons)
+										})
+									}
+									checked={!muteAllLessons}
 								/>
 								<span>Все</span>
 							</div>
 							<hr className='my-2 px-1' />
-							{[0, 1, 2, 3].map((ring, idx) => (
+							{[0, 1, 2, 3].map((lessonNum, idx) => (
 								<div key={idx} className='flex gap-1'>
 									<Form.Check
 										type='switch'
-										disabled={false}
-										// onChange={(e) => switchEnabled.mutate(e.target.checked)}
-										checked={false}
+										disabled={overridesByDay === null}
+										onChange={(e) => {
+											const newMuteLessons = new Set(muteLessons);
+
+											if (!e.target.checked) newMuteLessons.add(lessonNum);
+											else newMuteLessons.delete(lessonNum);
+
+											overridesMutation.mutate({
+												muteAllLessons,
+												muteLessons: Array.from(newMuteLessons)
+											});
+										}}
+										checked={!muteLessons.has(lessonNum)}
 									/>
 									<span className='mr-3'>{idx + 1}</span>
-									<span>
-										{idx === 0
-											? '8:30 - 9:15'
-											: idx === 1
-											? '--'
-											: idx === 2
-											? '--'
-											: '--'}
-									</span>
 								</div>
 							))}
 						</Panel.Body>
 
-						<div className='border-t p-3 bg-gray-50'>
+						{/* <div className='border-t p-3'>
 							<p className='text-sm'>8:30 - 12:00 (Время мута)</p>
-						</div>
+						</div> */}
+						{startDay === null && (
+							<div className='absolute flex p-4 w-full h-full top-0 left-0 bg-black/10'>
+								<span className='m-auto text-center text-slate-500 bg-white rounded p-1'>
+									Выберите день или диапазон
+								</span>
+							</div>
+						)}
 					</Panel>
 
 					<Panel className=''>
@@ -371,7 +466,7 @@ const CalendarPage = () => {
 							))}
 						</Panel.Body>
 						{(startDay !== null && endDay === null) || (
-							<div className='absolute flex w-full h-full top-0 left-0 bg-black/10'>
+							<div className='absolute flex p-4 w-full h-full top-0 left-0 bg-black/10'>
 								<span className='m-auto text-slate-500 bg-white rounded p-1'>
 									Выберите один день
 								</span>

@@ -8,6 +8,12 @@ export type ScheduleOverrideInfo = {
 	mute_lessons: number[];
 };
 
+export type ScheduleOverrideCreateRequest = {
+	at: string;
+	mute_all_lessons: boolean;
+	mute_lessons: number[];
+};
+
 export const getOverridesByDateRange = async (
 	start: Date | string,
 	end: Date | string
@@ -22,3 +28,15 @@ export const getOverridesByDateRange = async (
 		)
 	).data;
 };
+
+export const createOverride = async (
+	req: ScheduleOverrideCreateRequest,
+	endDate?: string
+) =>
+	(
+		await api.post(
+			'school/overrides' +
+				(endDate ? '?end_date=' + encodeURIComponent(endDate) : ''),
+			req
+		)
+	).data;
