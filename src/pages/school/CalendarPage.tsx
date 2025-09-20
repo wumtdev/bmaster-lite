@@ -25,8 +25,12 @@ import {
 import { getMonthDayCount, cn, fromDateFormat, formatDate } from '@/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+	updateAssignment,
+	createAssignment,
+	deleteAssignment,
 	getAssignmentsByDateRange,
-	ScheduleAssignmentInfo
+	ScheduleAssignmentInfo,
+	getActiveAssignment
 } from '@/api/school/assignments';
 import {
 	createOverride,
@@ -128,17 +132,45 @@ const CalendarPage = () => {
 		queryFn: () => getAssignmentsByDateRange(monthStart, monthEnd)
 	});
 
+	const prevAssignment = useQuery({
+		queryKey: ['school.assignments.prev', year, monthIndex],
+		queryFn: () => getActiveAssignment(formatDate(monthStart))
+	});
+
 	let assignmentsByDay: Record<number, ScheduleAssignmentInfo> | null = null;
+	let activeAssignment = prevAssignment.data;
 	if (assignmentsQuery.isFetched && assignmentsQuery.data) {
 		assignmentsByDay = {};
 		assignmentsQuery.data.forEach((assignment: ScheduleAssignmentInfo) => {
-			assignmentsByDay[fromDateFormat(assignment.start_date).getDate()] =
-				assignment;
+			const day = fromDateFormat(assignment.start_date).getDate();
+			assignmentsByDay[day] = assignment;
+			if (day <= dayA) activeAssignment = assignment;
 		});
 	}
 
 	const currentAssignment =
 		assignmentsByDay !== null ? assignmentsByDay[dayA] || null : null;
+
+	const assignmentsMutation = useMutation({
+		mutationKey: ['school.assignments.month', year, monthIndex],
+		mutationFn: (weekdays) => {
+			if (weekdays !== null)
+				if (currentAssignment !== null)
+					return updateAssignment(currentAssignment.id, weekdays);
+				else
+					return createAssignment({
+						start_date: formatDate(startDate),
+						...weekdays
+					});
+			else return deleteAssignment(currentAssignment.id);
+		},
+		onSuccess: () =>
+			queryClient.invalidateQueries([
+				'school.assignments.month',
+				year,
+				monthIndex
+			])
+	});
 
 	const overridesQuery = useQuery({
 		queryKey: ['school.overrides.month', year, monthIndex],
@@ -203,15 +235,7 @@ const CalendarPage = () => {
 	}, [brushing]);
 
 	useEffect(
-		() =>
-			console.log(
-				monthStart,
-				monthStart.getDay(),
-				assignmentsByDay,
-				overridesByDay,
-				schedulesById,
-				schedulesQuery.data
-			),
+		() => console.log(activeAssignment),
 		[assignmentsByDay, overridesByDay, schedulesById, schedulesQuery.data]
 	);
 
@@ -242,8 +266,10 @@ const CalendarPage = () => {
 		});
 	}
 
+	const displayAssignment = currentAssignment || activeAssignment;
+
 	return (
-		<div className='mx-auto max-w-7xl w-fit p-6'>
+		<div className='mx-auto max-w-[1000rem] w-fit p-6'>
 			<H1>Календарь</H1>
 			<div className='flex gap-4'>
 				{/* Calendar */}
@@ -416,11 +442,23 @@ const CalendarPage = () => {
 
 					<Panel className=''>
 						<Panel.Header className='p-2'>
-							<H2 className='flex gap-1'>
+							<H2 className='flex'>
 								<Form.Check
 									type='switch'
-									disabled={false}
-									// onChange={(e) => switchEnabled.mutate(e.target.checked)}
+									disabled={assignmentsQuery.isFetching}
+									onChange={(e) => {
+										if (e.target.checked)
+											assignmentsMutation.mutate({
+												monday: activeAssignment?.monday,
+												tuesday: activeAssignment?.tuesday,
+												wednesday: activeAssignment?.wednesday,
+												thursday: activeAssignment?.thursday,
+												friday: activeAssignment?.friday,
+												saturday: activeAssignment?.saturday,
+												sunday: activeAssignment?.sunday
+											});
+										else assignmentsMutation.mutate(null);
+									}}
 									checked={currentAssignment !== null}
 								/>
 								Новое расписание
@@ -430,40 +468,50 @@ const CalendarPage = () => {
 							</button> */}
 						</Panel.Header>
 						<Panel.Body className='p-3 flex flex-col gap-1'>
-							{weekdayNames.map((day, i) => (
-								<div key={i} className='flex items-center'>
-									<span>{day}</span>
-									<Typeahead
-										className='w-40 h-8 ml-auto'
-										emptyLabel='не найдено'
-										disabled={currentAssignment === null}
-										selected={
-											schedulesById &&
-											currentAssignment &&
-											currentAssignment[weekdayApiNames[i]]
-												? [
-														schedulesById[currentAssignment[weekdayApiNames[i]]]
-															.name
-												  ]
-												: []
-										}
-										onChange={(selected) => {
-											const val = selected[0] as string | undefined;
-											// const updated = (editingLessons || []).map((l, idx) =>
-											// 	idx === lesson_id ? { ...l, start_sound: val } : l
-											// );
-										}}
-										options={
-											schedulesQuery.data &&
-											schedulesQuery.data.map((s) => s.name)
-										}
-										placeholder='отсутствует'
-									/>
-									{/* <Button className='ml-auto' variant='outline-secondary'>
+							{weekdayNames.map((day, i) => {
+								return (
+									<div key={i} className='flex items-center'>
+										<span>{day}</span>
+										<Typeahead
+											className='w-40 h-8 ml-auto'
+											emptyLabel='не найдено'
+											positionFixed
+											disabled={currentAssignment === null}
+											selected={
+												(displayAssignment &&
+													schedulesById &&
+													displayAssignment[weekdayApiNames[i]] && [
+														schedulesById[displayAssignment[weekdayApiNames[i]]]
+													]) ||
+												[]
+											}
+											onChange={(selected) => {
+												console.log(selected);
+												const val: string | undefined = selected[0];
+												const weekdays = {
+													monday: currentAssignment?.monday,
+													tuesday: currentAssignment?.tuesday,
+													wednesday: currentAssignment?.wednesday,
+													thursday: currentAssignment?.thursday,
+													friday: currentAssignment?.friday,
+													saturday: currentAssignment?.saturday,
+													sunday: currentAssignment?.sunday,
+													[weekdayApiNames[i]]: schedulesQuery.data.find(
+														(s) => s.name === val
+													)?.id
+												};
+												assignmentsMutation.mutate(weekdays);
+											}}
+											options={schedulesQuery.data || []}
+											labelKey='name'
+											placeholder='отсутствует'
+										/>
+										{/* <Button className='ml-auto' variant='outline-secondary'>
 										Шаблон
 									</Button> */}
-								</div>
-							))}
+									</div>
+								);
+							})}
 						</Panel.Body>
 						{(startDay !== null && endDay === null) || (
 							<div className='absolute flex p-4 w-full h-full top-0 left-0 bg-black/10'>

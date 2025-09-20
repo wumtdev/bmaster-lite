@@ -2,6 +2,18 @@ import { formatDate } from '@/utils';
 import api from '@/api';
 
 export type ScheduleAssignmentInfo = {
+	id: number;
+	start_date: string;
+	monday: number | null;
+	tuesday: number | null;
+	wednesday: number | null;
+	thursday: number | null;
+	friday: number | null;
+	saturday: number | null;
+	sunday: number | null;
+};
+
+export type ScheduleAssignmentCreateRequest = {
 	start_date: string;
 	monday: number | null;
 	tuesday: number | null;
@@ -26,3 +38,21 @@ export const getAssignmentsByDateRange = async (
 		)
 	).data;
 };
+
+export const createAssignment = async (req: ScheduleAssignmentCreateRequest) =>
+	(await api.post('school/assignments', req)).data;
+
+export const updateAssignment = async (
+	id: number,
+	req: ScheduleAssignmentCreateRequest
+) => (await api.patch(`school/assignments/${id}`, req)).data;
+
+export const deleteAssignment = async (id: number) =>
+	(await api.delete(`school/assignments/${id}`)).data;
+
+export const getActiveAssignment = async (at: string | undefined) =>
+	(
+		await api.get<ScheduleAssignmentInfo | null>(
+			'school/assignments/active' + (at ? '?at=' + at : '')
+		)
+	).data;
