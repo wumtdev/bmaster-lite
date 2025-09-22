@@ -1,15 +1,18 @@
 import { cn } from '@/utils';
-import { HTMLAttributes } from 'react';
+import { FC, HTMLAttributes } from 'react';
 import { Card } from 'react-bootstrap';
 
-export let Panel = ({
-	children,
-	className,
-	...attrs
-}: HTMLAttributes<HTMLDivElement>) => {
+// @ts-ignore
+export let Panel: FC<HTMLAttributes<HTMLDivElement>> & {
+	Header: FC<HTMLAttributes<HTMLDivElement>>;
+	Body: FC<HTMLAttributes<HTMLDivElement>>;
+} = ({ children, className, ...attrs }: HTMLAttributes<HTMLDivElement>) => {
 	return (
 		<Card
-			className={cn('shadow rounded-2xl overflow-hidden border flex flex-col', className)}
+			className={cn(
+				'shadow rounded-2xl overflow-hidden border flex flex-col',
+				className
+			)}
 			{...attrs}
 		>
 			{children}
@@ -17,7 +20,6 @@ export let Panel = ({
 	);
 };
 
-// @ts-ignore
 Panel.Header = ({
 	children,
 	className,
@@ -30,7 +32,6 @@ Panel.Header = ({
 	);
 };
 
-// @ts-ignore
 Panel.Body = ({
 	children,
 	className,

@@ -1,28 +1,17 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'tailwindcss/tailwind.css';
-import { H1, H2, Note } from '@/components/text';
-import {
-	Card,
-	Form,
-	Spinner,
-	OverlayTrigger,
-	Tooltip,
-	Button
-} from 'react-bootstrap';
+import { H1, H2 } from '@/components/text';
+import { Form } from 'react-bootstrap';
 import Panel from '@/components/Panel';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import {
 	BellSlashFill,
 	CaretLeftFill,
-	CaretLeftSquare,
 	CaretRightFill,
-	CaretRightSquare,
-	ClockFill,
-	List
+	ClockFill
 } from 'react-bootstrap-icons';
-import { getMonthDayCount, cn, fromDateFormat, formatDate } from '@/utils';
+import { cn, fromDateFormat, formatDate } from '@/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
 	updateAssignment,
@@ -30,13 +19,15 @@ import {
 	deleteAssignment,
 	getAssignmentsByDateRange,
 	ScheduleAssignmentInfo,
-	getActiveAssignment
+	getActiveAssignment,
+	ScheduleWeekdays
 } from '@/api/school/assignments';
 import {
 	createOverride,
 	getOverridesByDateRange,
 	ScheduleOverrideInfo
 } from '@/api/school/overrides';
+import { getSchedules, ScheduleInfo } from '@/api/school/schedules';
 
 const CalendarPage = () => {
 	const queryClient = useQueryClient();
@@ -153,7 +144,7 @@ const CalendarPage = () => {
 
 	const assignmentsMutation = useMutation({
 		mutationKey: ['school.assignments.month', year, monthIndex],
-		mutationFn: (weekdays) => {
+		mutationFn: (weekdays: ScheduleWeekdays) => {
 			if (weekdays !== null)
 				if (currentAssignment !== null)
 					return updateAssignment(currentAssignment.id, weekdays);
@@ -165,11 +156,9 @@ const CalendarPage = () => {
 			else return deleteAssignment(currentAssignment.id);
 		},
 		onSuccess: () =>
-			queryClient.invalidateQueries([
-				'school.assignments.month',
-				year,
-				monthIndex
-			])
+			queryClient.invalidateQueries({
+				queryKey: ['school.assignments.month', year, monthIndex]
+			})
 	});
 
 	const overridesQuery = useQuery({
@@ -179,7 +168,13 @@ const CalendarPage = () => {
 
 	const overridesMutation = useMutation({
 		mutationKey: ['school.overrides.month', year, monthIndex],
-		mutationFn: ({ muteAllLessons, muteLessons }) =>
+		mutationFn: ({
+			muteAllLessons,
+			muteLessons
+		}: {
+			muteAllLessons: boolean;
+			muteLessons: number[];
+		}) =>
 			createOverride(
 				{
 					at: formatDate(startDate),
@@ -189,11 +184,9 @@ const CalendarPage = () => {
 				endDate !== null ? formatDate(endDate) : undefined
 			),
 		onSuccess: () =>
-			queryClient.invalidateQueries([
-				'school.overrides.month',
-				year,
-				monthIndex
-			])
+			queryClient.invalidateQueries({
+				queryKey: ['school.overrides.month', year, monthIndex]
+			})
 	});
 
 	let overridesByDay: Record<number, ScheduleOverrideInfo> | null = null;
@@ -251,19 +244,22 @@ const CalendarPage = () => {
 	// }
 
 	let muteAllLessons = false;
-	let muteLessons = new Set();
+	let muteLessons = new Set<number>();
 	if (overridesByDay) {
-		Object.entries(overridesByDay).forEach(([day, override]) => {
-			if (
-				day == startDay ||
-				(endDay !== null && day >= startDay && day <= endDay)
-			) {
-				if (override.mute_all_lessons) muteAllLessons = true;
-				for (const mutedLesson of override.mute_lessons) {
-					muteLessons.add(mutedLesson);
+		Object.entries(overridesByDay).forEach(
+			// @ts-ignore TODO: convert number
+			([day, override]: [number, ScheduleOverrideInfo]) => {
+				if (
+					day == startDay ||
+					(endDay !== null && day >= startDay && day <= endDay)
+				) {
+					if (override.mute_all_lessons) muteAllLessons = true;
+					for (const mutedLesson of override.mute_lessons) {
+						muteLessons.add(mutedLesson);
+					}
 				}
 			}
-		});
+		);
 	}
 
 	const displayAssignment = currentAssignment || activeAssignment;
@@ -469,6 +465,7 @@ const CalendarPage = () => {
 						</Panel.Header>
 						<Panel.Body className='p-3 flex flex-col gap-1'>
 							{weekdayNames.map((day, i) => {
+								const weekdayName = weekdayApiNames[i];
 								return (
 									<div key={i} className='flex items-center'>
 										<span>{day}</span>
@@ -487,7 +484,9 @@ const CalendarPage = () => {
 											}
 											onChange={(selected) => {
 												console.log(selected);
-												const val: string | undefined = selected[0];
+												// @ts-ignore
+												const val: ScheduleInfo | undefined = selected[0];
+												console.log(val);
 												const weekdays = {
 													monday: currentAssignment?.monday,
 													tuesday: currentAssignment?.tuesday,
@@ -495,11 +494,9 @@ const CalendarPage = () => {
 													thursday: currentAssignment?.thursday,
 													friday: currentAssignment?.friday,
 													saturday: currentAssignment?.saturday,
-													sunday: currentAssignment?.sunday,
-													[weekdayApiNames[i]]: schedulesQuery.data.find(
-														(s) => s.name === val
-													)?.id
+													sunday: currentAssignment?.sunday
 												};
+												weekdays[weekdayName] = val ? val.id : null;
 												assignmentsMutation.mutate(weekdays);
 											}}
 											options={schedulesQuery.data || []}
