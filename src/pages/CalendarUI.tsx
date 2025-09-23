@@ -41,7 +41,7 @@ const CalendarUI: React.FC = () => {
 								<div
 									key={day}
 									className={`p-2 cursor-pointer rounded ${
-										isSelected ? 'bg-red-200' : 'hover:bg-gray-200'
+										isSelected ? 'bg-blue-300' : 'hover:bg-gray-200'
 									}`}
 									onClick={() => setSelectedDay(day)}
 								>

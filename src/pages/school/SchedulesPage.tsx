@@ -695,191 +695,219 @@ const SchedulesPage = () => {
 	};
 
 	return (
-		<div className='mx-auto max-w-7xl w-fit p-6'>
-			<H1>Расписания</H1>
-			<div className='flex gap-6 min-h-[40rem]'>
-				<Panel className='min-w-[18rem] mb-auto'>
-					<Panel.Header>
-						<H2>Список</H2>
-					</Panel.Header>
-					<Panel.Body className='flex flex-col gap-1 pt-3 pb-3 pl-3 pr-0'>
-						{schedules
-							? schedules.map((schedule) => (
+		<div className='container mx-auto p-6 origin-top'>
+			<H1 className='text-left'>Расписания</H1>
+
+			<div className='flex gap-6 justify-center items-start'>
+				{/* Левая панель */}
+				<div className='flex flex-col items-center max-w-xs w-72'>
+					<Panel className='w-full bg-white rounded-xl shadow-lg'>
+						<Panel.Header className='px-6 py-4 border-b'>
+							<H2 className='text-xl'>Список</H2>
+						</Panel.Header>
+
+						<Panel.Body className='p-4 flex flex-col gap-1'>
+							{schedules ? (
+								schedules.map((schedule) => (
 									<div
-										className={cn(
-											'flex hover:bg-slate-200 rounded-l-[0.4rem] p-2 cursor-pointer',
-											schedule.id == selectedScheduleId &&
-												'bg-[rgb(76,110,245)] hover:bg-[rgb(112,139,247)] text-white'
-										)}
-										onClick={() => setSelectedScheduleId(schedule.id)}
 										key={schedule.id}
+										onClick={() => setSelectedScheduleId(schedule.id)}
+										className={cn(
+											'flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg transition-colors',
+											'hover:bg-gray-100',
+											schedule.id === selectedScheduleId &&
+												'bg-blue-100 text-blue-900 ring-2 ring-blue-300'
+										)}
 									>
-										<Value>{schedule.name}</Value>
+										<Value className='truncate'>{schedule.name}</Value>
 
-										{/* <button
-											onClick={(e) => {
-												// if (controllingScheduleId === schedule.id)
-												// 	setControllingScheduleId(null);
-												// else setControllingScheduleId(schedule.id);
-												setControllingScheduleId(schedule.id);
-												e.preventDefault();
-												e.stopPropagation();
-											}}
-											ref={
-												controllingScheduleId === schedule.id
-													? controllingScheduleRef
-													: null
-											}
-											className='ml-auto w-6 h-6 aspect-square hover:bg-[rgba(0,0,0,0.2)] rounded-[0.2rem]'
-										>
-											<ThreeDotsVertical className='m-auto' />
-										</button>
-										<Overlay
-											target={controllingScheduleRef.current}
-											show={controllingScheduleId === schedule.id}
-											placement='right'
-											containerPadding={16}
-											container={document.body}
-										>
-											{(props) => (
-												<Popover id='overlay-example' {...props}>
-													My Tooltip
-												</Popover>
-											)}
-										</Overlay> */}
-									</div>
-							  ))
-							: 'Загрузка...'}
+										{/* Троеточие справа */}
+										<div className='ml-auto relative'>
+											<button
+												onClick={(e) => {
+													e.stopPropagation();
+													setControllingScheduleId(
+														controllingScheduleId === schedule.id
+															? null
+															: schedule.id
+													);
+												}}
+												className='p-2 rounded-lg hover:bg-gray-200 transition-colors'
+											>
+												<ThreeDotsVertical size={18} />
+											</button>
 
-						<div className='mt-20'>
-							{newScheduleName !== null ? (
-								<input
-									type='text'
-									value={newScheduleName}
-									onChange={(e) => setNewScheduleName(e.target.value)}
-									className={`px-2 py-1 min-w-12 border rounded ${
-										newScheduleName === ''
-											? 'ring-2 ring-red-300'
-											: 'border-gray-200'
-									}`}
-									onBlur={() => setNewScheduleName(null)}
-									onKeyDown={(e) => {
-										if (e.key === 'Enter') {
-											createScheduleMutation.mutate();
-											e.preventDefault();
-										}
-										if (e.key === 'Escape') {
-											setNewScheduleName(null);
-										}
-									}}
-									autoFocus
-									disabled={createScheduleMutation.isPending}
-								/>
-							) : (
-								<Button
-									onClick={() => setNewScheduleName('')}
-									className='ml-auto px-[2rem]'
-								>
-									<Plus size={24} /> Создать
-								</Button>
-							)}
-						</div>
-					</Panel.Body>
-				</Panel>
-				<Panel className='min-w-[32rem] max-h-[55rem]'>
-					<Panel.Header>
-						<H2>
-							{selectedScheduleId ? (
-								selectedSchedule ? (
-									selectedSchedule.name
-								) : (
-									<span className='text-red-700'>#{selectedScheduleId}</span>
-								)
-							) : (
-								'Выберите расписание'
-							)}
-						</H2>
-					</Panel.Header>
-					<Panel.Body className='overflow-y-auto'>
-						{editingLessons ? (
-							editingLessons.map((lesson, lesson_num) => {
-								let breakDisplay = null;
-								if (lesson_num !== 0) {
-									const prevLesson = editingLessons[lesson_num - 1];
-									const breakDuration =
-										countMinutes(lesson.start_at) -
-										countMinutes(prevLesson.end_at);
-									breakDisplay = (
-										<div
-											className={cn(
-												'flex items-center gap-3 py-2 px-4 text-gray-500',
-												breakDuration < 1 && 'text-red-500'
-											)}
-										>
-											<Name>Перемена</Name>
-											<Value>
-												{breakDuration !== null ? `${breakDuration} мин` : '—'}
-											</Value>
-											{/* {breakDuration < 1 && (
-												<div className='text-red-500 text-sm'>
-													пересечение времени
+											{controllingScheduleId === schedule.id && (
+												<div className='absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border z-10'>
+													<button
+														onClick={() => {
+															renameSchedule(schedule.id);
+															setControllingScheduleId(null);
+														}}
+														className='block w-full text-left px-4 py-2 hover:bg-gray-100'
+													>
+														Переименовать
+													</button>
+													<button
+														onClick={() => {
+															duplicateSchedule(schedule.id);
+															setControllingScheduleId(null);
+														}}
+														className='block w-full text-left px-4 py-2 hover:bg-gray-100'
+													>
+														Дублировать
+													</button>
+													<button
+														onClick={() => {
+															deleteSchedule(schedule.id);
+															setControllingScheduleId(null);
+														}}
+														className='block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100'
+													>
+														Удалить
+													</button>
 												</div>
-											)} */}
+											)}
+										</div>
+									</div>
+								))
+							) : (
+								<Note className='text-center'>Загрузка…</Note>
+							)}
+
+							{/* Создание нового расписания */}
+							<div className='mt-6'>
+								{newScheduleName !== null ? (
+									<input
+										type='text'
+										value={newScheduleName}
+										onChange={(e) => setNewScheduleName(e.target.value)}
+										className={cn(
+											'px-3 py-2 w-full border rounded-lg focus:outline-none',
+											newScheduleName === ''
+												? 'ring-2 ring-red-300'
+												: 'border-gray-300'
+										)}
+										onBlur={() => setNewScheduleName(null)}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter') {
+												createScheduleMutation.mutate();
+												e.preventDefault();
+											}
+											if (e.key === 'Escape') setNewScheduleName(null);
+										}}
+										autoFocus
+										disabled={createScheduleMutation.isPending}
+									/>
+								) : (
+									<Button
+										onClick={() => setNewScheduleName('')}
+										className='w-full flex items-center justify-center gap-2 px-4 py-2'
+									>
+										<Plus size={20} /> Создать
+									</Button>
+								)}
+							</div>
+						</Panel.Body>
+					</Panel>
+				</div>
+
+				{/* Правая панель */}
+				<div className='flex flex-col w-[40rem]'>
+					<Panel className='w-full bg-white rounded-xl shadow-lg'>
+						<Panel.Header className='px-6 py-4 border-b'>
+							<H2 className='text-xl'>
+								{selectedScheduleId ? (
+									selectedSchedule ? (
+										selectedSchedule.name
+									) : (
+										<span className='text-red-700'>#{selectedScheduleId}</span>
+									)
+								) : (
+									'Выберите расписание'
+								)}
+							</H2>
+						</Panel.Header>
+
+						<Panel.Body className='p-6 overflow-y-auto max-h-[50rem] space-y-2'>
+							{editingLessons ? (
+								editingLessons.map((lesson, lesson_num) => {
+									let breakDisplay = null;
+									if (lesson_num !== 0) {
+										const prevLesson = editingLessons[lesson_num - 1];
+										const breakDuration =
+											countMinutes(lesson.start_at) -
+											countMinutes(prevLesson.end_at);
+										breakDisplay = (
+											<div
+												className={cn(
+													'flex items-center gap-3 py-2 px-4 text-gray-500 bg-gray-50 rounded-lg',
+													breakDuration < 1 && 'text-red-500'
+												)}
+											>
+												<Name>Перемена</Name>
+												<Value>
+													{breakDuration > 0 ? `${breakDuration} мин` : '—'}
+												</Value>
+											</div>
+										);
+									}
+
+									return (
+										<div key={lesson_num} className='space-y-2'>
+											{breakDisplay}
+											<LessonCard
+												ctx={ctx}
+												lesson={lesson}
+												lesson_num={lesson_num}
+											/>
 										</div>
 									);
-								}
-
-								return (
-									<div key={lesson_num}>
-										{breakDisplay}
-										<LessonCard
-											ctx={ctx}
-											lesson={lesson}
-											lesson_num={lesson_num}
-										/>
-									</div>
-								);
-							})
-						) : (
-							<Note>Выберите расписание для редактирования</Note>
-						)}
-					</Panel.Body>
-					{editingLessons && (
-						<div className='border-t p-3 flex justify-end gap-2'>
-							{unsaved && (
-								<div className='flex gap-[0.15rem]'>
-									<Button
-										className='rounded-r-none px-3'
-										onClick={() => cancelEditing()}
-										variant='danger'
-										disabled={saveScheduleLessonsMutation.isPending}
-									>
-										<XCircleFill size={24} />
-									</Button>
-									<Button
-										className='rounded-l-none px-3 gap-[1rem]'
-										onClick={() => saveScheduleLessonsMutation.mutate()}
-										variant='success'
-									>
-										{saveScheduleLessonsMutation.isPending ? (
-											<Spinner />
-										) : (
-											<FloppyFill size={24} />
-										)}
-										Сохранить
-									</Button>
-								</div>
+								})
+							) : (
+								<Note className='text-center text-gray-600'>
+									Выберите расписание для редактирования
+								</Note>
 							)}
-							<Button
-								onClick={() => addLesson()}
-								variant='secondary'
-								className='px-[2rem]'
-							>
-								<Plus size={24} /> Добавить урок
-							</Button>
-						</div>
-					)}
-				</Panel>
+						</Panel.Body>
+
+						{editingLessons && (
+							<div className='border-t p-4 flex justify-end gap-2'>
+								{unsaved && (
+									<div className='flex gap-1'>
+										<Button
+											className='rounded-r-none px-3'
+											onClick={() => cancelEditing()}
+											variant='danger'
+											disabled={saveScheduleLessonsMutation.isPending}
+										>
+											<XCircleFill size={20} />
+										</Button>
+										<Button
+											className='rounded-l-none px-3 gap-2'
+											onClick={() => saveScheduleLessonsMutation.mutate()}
+											variant='success'
+										>
+											{saveScheduleLessonsMutation.isPending ? (
+												<Spinner />
+											) : (
+												<FloppyFill size={20} />
+											)}
+											Сохранить
+										</Button>
+									</div>
+								)}
+								<Button
+									onClick={() => addLesson()}
+									variant='secondary'
+									className='px-6'
+								>
+									<Plus size={20} /> Добавить урок
+								</Button>
+							</div>
+						)}
+					</Panel>
+				</div>
 			</div>
 		</div>
 	);

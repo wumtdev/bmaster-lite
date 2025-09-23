@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'tailwindcss/tailwind.css';
-import { H1, H2 } from '@/components/text';
+import { H1, H2, Note } from '@/components/text';
 import { Form } from 'react-bootstrap';
 import Panel from '@/components/Panel';
 import { Typeahead } from 'react-bootstrap-typeahead';
@@ -265,131 +265,151 @@ const CalendarPage = () => {
 	const displayAssignment = currentAssignment || activeAssignment;
 
 	return (
-		<div className='mx-auto max-w-[1000rem] w-fit p-6'>
-			<H1>Календарь</H1>
-			<div className='flex gap-4'>
-				{/* Calendar */}
-				<Panel className='mb-auto'>
-					<Panel.Header className='flex px-4 py-2'>
-						<H2 className='m-auto flex items-center gap-3'>
-							<button
-								className='ring-[0.15rem] ring-transparent rounded-sm hover:ring-slate-500'
-								onClick={() => switchPrevMonth()}
-							>
-								<CaretLeftFill />
-							</button>
-							<button className='min-w-36 underline-offset-4 hover:underline'>
-								{monthNames[monthIndex]} {year}
-							</button>
-							<button
-								className='ring-[0.15rem] ring-transparent rounded-sm hover:ring-slate-500'
-								onClick={() => switchNextMonth()}
-							>
-								<CaretRightFill />
-							</button>
-						</H2>
-					</Panel.Header>
-
-					<Panel.Body className='p-3 flex flex-col gap-1'>
-						<div className='grid grid-cols-7 text-center font-bold'>
-							{weekdayNames.map((day) => (
-								<div key={day}>{day}</div>
-							))}
-						</div>
-
-						<div className='grid grid-cols-7 select-none text-center gap-[0.2rem]'>
-							{[...Array(weekdayNormalMap[monthStart.getDay()])].map((_, i) => (
-								<div />
-							))}
-							{[...Array(monthDayCount)].map((_, i) => {
-								const day = i + 1;
-								const isSelected =
-									startDay === day ||
-									(endDay !== null ? day >= startDay && day <= endDay : false);
-								const overrides =
-									overridesByDay !== null ? overridesByDay[day] : null;
-								const assignment =
-									assignmentsByDay !== null ? assignmentsByDay[day] : null;
-								return (
-									<div
-										key={day}
-										className={cn(
-											'w-10 relative h-10 flex cursor-pointer',
-											isSelected
-												? ' bg-red-200' +
-														(endDay === null
-															? ' rounded-lg'
-															: day === startDay
-															? ' rounded-l-lg'
-															: day === endDay
-															? ' rounded-r-lg'
-															: '')
-												: ' hover:bg-gray-200 rounded-lg'
-										)}
-										onMouseDown={(e) => {
-											if (e.shiftKey) {
-												if (day !== dayA) setDayB(day);
-											} else {
-												setDayA(day);
-												setDayB(null);
-												setBrushing(true);
-											}
-										}}
-										onMouseMove={() => {
-											if (brushing && day !== dayA && day !== dayB)
-												setDayB(day);
-										}}
+		<div className='container mx-auto p-6 scale-90 origin-top'>
+			<H1 className='text-left'>Календарь</H1>
+			<div className='flex gap-6 justify-center items-start'>
+				{/* Left panel */}
+				<div className='flex flex-col items-center max-w-2xl'>
+					{/* Calendar */}
+					<div className='w-full rounded-xl p-6'>
+						<Panel className='w-full'>
+							<Panel.Header className='px-6 py-4 border-b'>
+								<H2 className='flex items-center justify-center gap-4'>
+									<button
+										className='p-2 rounded-lg hover:bg-gray-100 transition-colors'
+										onClick={() => switchPrevMonth()}
 									>
-										<span
-											className={cn(
-												'm-auto',
-												monthIndex === today.getMonth() &&
-													day === today.getDate() &&
-													'text-blue-500 font-bold'
-											)}
-										>
+										<CaretLeftFill size={20} />
+									</button>
+									<button className='text-2xl font-semibold min-w-48 hover:text-blue-600 transition-colors'>
+										{monthNames[monthIndex]} {year}
+									</button>
+									<button
+										className='p-2 rounded-lg hover:bg-gray-100 transition-colors'
+										onClick={() => switchNextMonth()}
+									>
+										<CaretRightFill size={20} />
+									</button>
+								</H2>
+							</Panel.Header>
+
+							<Panel.Body className='p-6'>
+								<div className='grid grid-cols-7 text-center font-bold mb-4 text-lg'>
+									{weekdayNames.map((day) => (
+										<div key={day} className='py-2 font-bold'>
 											{day}
-										</span>
-										<div className='absolute flex right-1 bottom-[0.25rem] text-[0.6rem]'>
-											{overrides && (
-												<BellSlashFill
-													className={
-														overrides.mute_all_lessons
-															? 'text-red-400'
-															: 'text-gray-600'
-													}
-												/>
-											)}
-											{assignment && <ClockFill className='text-blue-400' />}
 										</div>
-									</div>
-								);
-							})}
+									))}
+								</div>
+
+								<div className='grid grid-cols-7 select-none text-center gap-3'>
+									{[...Array(weekdayNormalMap[monthStart.getDay()])].map(
+										(_, i) => (
+											<div key={`empty-${i}`} />
+										)
+									)}
+									{[...Array(monthDayCount)].map((_, i) => {
+										const day = i + 1;
+										const isSelected =
+											startDay === day ||
+											(endDay !== null
+												? day >= startDay && day <= endDay
+												: false);
+										const overrides =
+											overridesByDay !== null ? overridesByDay[day] : null;
+										const assignment =
+											assignmentsByDay !== null ? assignmentsByDay[day] : null;
+										return (
+											<div
+												key={day}
+												className={cn(
+													'relative flex cursor-pointer aspect-square',
+													'items-center justify-center rounded-xl transition-all duration-200',
+													'min-h-[60px] text-lg font-medium',
+													isSelected
+														? 'bg-blue-100 text-blue-900 shadow-md' +
+																(endDay === null
+																	? ' ring-4 ring-blue-300'
+																	: day === startDay
+																	? ' rounded-l-xl ring-l-4 ring-blue-300'
+																	: day === endDay
+																	? ' rounded-r-xl ring-r-4 ring-blue-300'
+																	: 'bg-blue-100')
+														: ' hover:bg-gray-100 hover:scale-105 transform'
+												)}
+												onMouseDown={(e) => {
+													if (e.shiftKey) {
+														if (day !== dayA) setDayB(day);
+													} else {
+														setDayA(day);
+														setDayB(null);
+														setBrushing(true);
+													}
+												}}
+												onMouseMove={() => {
+													if (brushing && day !== dayA && day !== dayB)
+														setDayB(day);
+												}}
+											>
+												<span
+													className={cn(
+														'flex items-center justify-center w-12 h-12',
+														monthIndex === today.getMonth() &&
+															day === today.getDate()
+															? 'text-blue-600 font-bold'
+															: ''
+													)}
+												>
+													{day}
+												</span>
+
+												<div className='absolute flex right-2 bottom-2 gap-1'>
+													{overrides && (
+														<BellSlashFill
+															size={16}
+															className={
+																overrides.mute_all_lessons
+																	? 'text-red-500'
+																	: 'text-gray-500'
+															}
+														/>
+													)}
+													{assignment && (
+														<ClockFill size={16} className='text-blue-500' />
+													)}
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							</Panel.Body>
+						</Panel>
+					</div>
+
+					<Note className='w-full mt-4 p-4 text-base bg-gray-50 rounded-l shadow-sm'>
+						<div className='space-y-2'>
+							<p>Выберите день или диапазон для внесения изменений.</p>
+							<p>• Клик — выбрать день</p>
+							<p>• Удерживать Shift — выбрать диапазон</p>
+							<div className='mt-3 pt-3 border-t'>
+								<p className='font-semibold mb-2'>Легенда:</p>
+								<p>• 📅 — новое расписание</p>
+								<p>• 🔕 — выключены все звонки</p>
+								<p>• ⏰ — выключен отдельный звонок</p>
+							</div>
 						</div>
-					</Panel.Body>
-				</Panel>
+					</Note>
+				</div>
 
 				{/* Right panel */}
-				<div className='flex flex-col gap-3'>
-					<Panel>
-						<Panel.Header className='py-2 px-3'>
-							<H2 className='flex'>
-								{/* <Form.Check
-									type='switch'
-									disabled={false}
-									className='my-auto'
-									// onChange={(e) => switchEnabled.mutate(e.target.checked)}
-									// checked={false}
-								/> */}
-								Звонки
-							</H2>
-						</Panel.Header>
-						<Panel.Body className='p-3 flex flex-col gap-1'>
-							<div className='flex items-center text-lg'>
+				<div className='flex flex-col gap-4 w-96'>
+					<Panel className='w-full bg-white rounded-xl shadow-lg'>
+						<Panel.Header className='py-4 px-6 border-b'>
+							<H2 className='flex items-center gap-4 text-xl'>
 								<Form.Check
 									type='switch'
 									disabled={overridesByDay === null}
-									className='my-auto'
+									className='scale-125'
 									onChange={(e) =>
 										overridesMutation.mutate({
 											muteAllLessons: !e.target.checked,
@@ -398,50 +418,54 @@ const CalendarPage = () => {
 									}
 									checked={!muteAllLessons}
 								/>
-								<span>Все</span>
+								<span>Все звонки</span>
+							</H2>
+						</Panel.Header>
+						<Panel.Body className='p-6 space-y-2'>
+							<div className='space-y-2'>
+								<p className='font-medium text-gray-700'>Отдельные уроки:</p>
+								{[0, 1, 2, 3, 4, 5, 6].map((lessonNum, idx) => (
+									<div key={idx} className='flex items-center gap-4 py-2'>
+										<span className='text-base'>{idx + 1}</span>
+										<Form.Check
+											type='switch'
+											disabled={overridesByDay === null}
+											className='scale-110'
+											onChange={(e) => {
+												const newMuteLessons = new Set(muteLessons);
+
+												if (!e.target.checked) newMuteLessons.add(lessonNum);
+												else newMuteLessons.delete(lessonNum);
+
+												overridesMutation.mutate({
+													muteAllLessons,
+													muteLessons: Array.from(newMuteLessons)
+												});
+											}}
+											checked={!muteLessons.has(lessonNum)}
+										/>
+										<span className='text-lg'>8:30 - 9:15</span>
+									</div>
+								))}
 							</div>
-							<hr className='my-2 px-1' />
-							{[0, 1, 2, 3].map((lessonNum, idx) => (
-								<div key={idx} className='flex gap-1'>
-									<Form.Check
-										type='switch'
-										disabled={overridesByDay === null}
-										onChange={(e) => {
-											const newMuteLessons = new Set(muteLessons);
 
-											if (!e.target.checked) newMuteLessons.add(lessonNum);
-											else newMuteLessons.delete(lessonNum);
-
-											overridesMutation.mutate({
-												muteAllLessons,
-												muteLessons: Array.from(newMuteLessons)
-											});
-										}}
-										checked={!muteLessons.has(lessonNum)}
-									/>
-									<span className='mr-3'>{idx + 1}</span>
+							{startDay === null && (
+								<div className='absolute inset-4 bg-white/90 flex items-center justify-center rounded-lg backdrop-blur-sm'>
+									<span className='text-center text-gray-600 bg-white rounded-lg p-4 shadow-lg border'>
+										Выберите день или диапазон
+									</span>
 								</div>
-							))}
+							)}
 						</Panel.Body>
-
-						{/* <div className='border-t p-3'>
-							<p className='text-sm'>8:30 - 12:00 (Время мута)</p>
-						</div> */}
-						{startDay === null && (
-							<div className='absolute flex p-4 w-full h-full top-0 left-0 bg-black/10'>
-								<span className='m-auto text-center text-slate-500 bg-white rounded p-1'>
-									Выберите день или диапазон
-								</span>
-							</div>
-						)}
 					</Panel>
 
-					<Panel className=''>
-						<Panel.Header className='p-2'>
-							<H2 className='flex'>
+					<Panel className='w-full bg-white rounded-xl shadow-lg'>
+						<Panel.Header className='py-4 px-6 border-b'>
+							<H2 className='flex items-center gap-4 text-xl'>
 								<Form.Check
 									type='switch'
 									disabled={assignmentsQuery.isFetching}
+									className='scale-125'
 									onChange={(e) => {
 										if (e.target.checked)
 											assignmentsMutation.mutate({
@@ -457,66 +481,67 @@ const CalendarPage = () => {
 									}}
 									checked={currentAssignment !== null}
 								/>
-								Новое расписание
+								<span>Расписание уроков</span>
 							</H2>
-							{/* <button className='btn btn-warning w-100'>
-								Новое расписание
-							</button> */}
 						</Panel.Header>
-						<Panel.Body className='p-3 flex flex-col gap-1'>
-							{weekdayNames.map((day, i) => {
-								const weekdayName = weekdayApiNames[i];
-								return (
-									<div key={i} className='flex items-center'>
-										<span>{day}</span>
-										<Typeahead
-											className='w-40 h-8 ml-auto'
-											emptyLabel='не найдено'
-											positionFixed
-											disabled={currentAssignment === null}
-											selected={
-												(displayAssignment &&
-													schedulesById &&
-													displayAssignment[weekdayApiNames[i]] && [
-														schedulesById[displayAssignment[weekdayApiNames[i]]]
-													]) ||
-												[]
-											}
-											onChange={(selected) => {
-												console.log(selected);
-												// @ts-ignore
-												const val: ScheduleInfo | undefined = selected[0];
-												console.log(val);
-												const weekdays = {
-													monday: currentAssignment?.monday,
-													tuesday: currentAssignment?.tuesday,
-													wednesday: currentAssignment?.wednesday,
-													thursday: currentAssignment?.thursday,
-													friday: currentAssignment?.friday,
-													saturday: currentAssignment?.saturday,
-													sunday: currentAssignment?.sunday
-												};
-												weekdays[weekdayName] = val ? val.id : null;
-												assignmentsMutation.mutate(weekdays);
-											}}
-											options={schedulesQuery.data || []}
-											labelKey='name'
-											placeholder='отсутствует'
-										/>
-										{/* <Button className='ml-auto' variant='outline-secondary'>
-										Шаблон
-									</Button> */}
-									</div>
-								);
-							})}
-						</Panel.Body>
-						{(startDay !== null && endDay === null) || (
-							<div className='absolute flex p-4 w-full h-full top-0 left-0 bg-black/10'>
-								<span className='m-auto text-slate-500 bg-white rounded p-1'>
-									Выберите один день
-								</span>
+						<Panel.Body className='p-6 space-y-4'>
+							<div className='space-y-3'>
+								{weekdayNames.map((day, i) => {
+									const weekdayName = weekdayApiNames[i];
+									return (
+										<div key={i} className='flex items-center py-0.5'>
+											<span className='text-base font-medium w-24 flex-shrink-0'>
+												{day}
+											</span>
+											<Typeahead
+												className='flex-1'
+												emptyLabel='Расписание не найдено'
+												positionFixed
+												disabled={currentAssignment === null}
+												selected={
+													(displayAssignment &&
+														schedulesById &&
+														displayAssignment[weekdayApiNames[i]] && [
+															schedulesById[
+																displayAssignment[weekdayApiNames[i]]
+															]
+														]) ||
+													[]
+												}
+												onChange={(selected) => {
+													console.log(selected);
+													// @ts-ignore
+													const val: ScheduleInfo | undefined = selected[0];
+													console.log(val);
+													const weekdays = {
+														monday: currentAssignment?.monday,
+														tuesday: currentAssignment?.tuesday,
+														wednesday: currentAssignment?.wednesday,
+														thursday: currentAssignment?.thursday,
+														friday: currentAssignment?.friday,
+														saturday: currentAssignment?.saturday,
+														sunday: currentAssignment?.sunday
+													};
+													weekdays[weekdayName] = val ? val.id : null;
+													assignmentsMutation.mutate(weekdays);
+												}}
+												options={schedulesQuery.data || []}
+												labelKey='name'
+												placeholder='Без расписания'
+											/>
+										</div>
+									);
+								})}
 							</div>
-						)}
+
+							{(startDay !== null && endDay === null) || (
+								<div className='absolute inset-4 bg-white/90 flex items-center justify-center rounded-lg backdrop-blur-sm'>
+									<span className='text-center text-gray-600 bg-white rounded-lg p-4 shadow-lg border'>
+										Выберите один день
+									</span>
+								</div>
+							)}
+						</Panel.Body>
 					</Panel>
 				</div>
 			</div>
