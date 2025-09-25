@@ -236,7 +236,7 @@ export default function AnnouncementsPage(): JSX.Element {
 								className={`absolute rounded-full inset-0 ${
 									status === 'started'
 										? 'opacity-10 bg-rose-600'
-										: 'bg-[rgb(76,110,245)] hover:bg-[rgb(112,139,247)]'
+										: 'bg-blue-500 hover:bg-blue-400'
 								}`}
 							/>
 
@@ -269,9 +269,7 @@ export default function AnnouncementsPage(): JSX.Element {
 									<div className='text-xs text-slate-400'>Частота</div>
 									<div className='font-medium text-slate-700'>{RATE} Hz</div>
 								</div>
-								<Note
-								className='col-span-2 text-center text-xs mb-2'
-								>
+								<Note className='col-span-2 text-center text-xs mb-2'>
 									Логи и ошибки выводятся в консоль.
 								</Note>
 							</div>

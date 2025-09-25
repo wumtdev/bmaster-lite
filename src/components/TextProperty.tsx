@@ -7,13 +7,22 @@ export const TextProperty = ({
 	disabled,
 	onSubmit,
 	value,
+	edit,
+	defaultEdit,
+	parent,
 	...attrs
 }: HTMLAttributes<HTMLInputElement> & {
 	disabled?: boolean;
 	onSubmit?: (v: string) => any;
+	edit?: boolean;
+	defaultEdit?: boolean;
 	value: string;
+	parent: HTMLAttributes<HTMLDivElement>;
 }) => {
-	const [isEditing, setEditing] = useState<boolean>(false);
+	if (disabled === undefined) disabled = false;
+	if (defaultEdit === undefined) defaultEdit = false;
+
+	const [isEditing, setEditing] = useState<boolean>(defaultEdit);
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -21,6 +30,10 @@ export const TextProperty = ({
 			inputRef.current.focus();
 		}
 	}, [isEditing]);
+
+	useEffect(() => {
+		if (edit !== undefined && isEditing !== edit) setEditing(edit);
+	}, [edit, isEditing]);
 
 	useEffect(() => {
 		if (disabled) setEditing(false);
@@ -32,13 +45,13 @@ export const TextProperty = ({
 	};
 
 	return (
-		<div className={cn('flex rounded-md border-2', className)}>
+		<div className={cn('flex rounded-lg border-2', className)} {...parent}>
 			<input
 				{...attrs}
 				ref={inputRef}
 				disabled={!isEditing}
 				value={isEditing ? undefined : value}
-				onBlur={() => setEditing(false)}
+				// onBlur={() => setEditing(false)}
 				onKeyDown={(e) => {
 					switch (e.key) {
 						case 'Enter':
@@ -49,10 +62,10 @@ export const TextProperty = ({
 							break;
 					}
 				}}
-				className='flex-1 bg-gray-50 p-1'
+				className='flex-1 bg-gray-50 p-1 w-full'
 			/>
 			<button
-				className='bg-gray-200 w-10 h-10'
+				className='bg-gray-300 hover:bg-gray-400 rounded-r-[0.3rem] text-black py-1 px-[0.6rem]'
 				disabled={disabled}
 				onClick={() => {
 					if (isEditing) submit();

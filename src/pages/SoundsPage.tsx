@@ -171,7 +171,7 @@ const SoundsPage = () => {
 									<Note>Прослушать звук в браузере</Note>
 								</Field>
 
-								<hr/>
+								<hr />
 
 								<Field className='gap-2'>
 									<Name className='flex items-center gap-2'>
@@ -181,9 +181,9 @@ const SoundsPage = () => {
 										{selectedSound.sound_specs ? (
 											<Button
 												className='w-full'
+												variant='success'
 												disabled={playSoundMut.isPending}
 												onClick={() => playSoundMut.mutate(selectedSoundName)}
-												variant='success'
 											>
 												<PlayFill /> Воспроизвести
 											</Button>

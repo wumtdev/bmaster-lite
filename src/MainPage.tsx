@@ -18,13 +18,15 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { AccountLocalInfo, getLocalUser } from '@/api/auth';
 import ForegroundNotification from '@/components/ForegroundNotification';
+import Clock from './components/Clock';
 import { LocalUserProvider } from '@/contexts/LocalUserContext';
+
 import BellsPage from '@/pages/BellsPage';
 import AnnouncementsPage from '@/pages/AnnouncementsPage';
 import SoundsPage from '@/pages/SoundsPage';
-import CalendarUI from '@/pages/CalendarUI';
 import CalendarPage from '@/pages/school/CalendarPage';
 import SchedulesPage from '@/pages/school/SchedulesPage';
+
 import TodayPage from '@/pages/school/TodayPage';
 import DraggableCard from '@/components/DraggableCard';
 import * as icoms from '@/api/icoms';
@@ -34,6 +36,8 @@ import { H2, Note } from './components/text';
 import Button from './components/Button';
 import Foreground from './components/Foreground';
 import Panel from './components/Panel';
+
+import { useState, useEffect } from 'react';
 
 export default function MainPage() {
 	const {
@@ -124,13 +128,14 @@ export default function MainPage() {
 				<Navbar expand='lg' className='p-0 bg-[#F1F5F9] shadow-md'>
 					<Container>
 						{/* Brand Section */}
-						<Navbar.Brand className='mr-14'>
+						<Navbar.Brand className='flex flex-col items-center mr-14'>
 							<Link
 								to='/'
 								className='flex gap-2 items-center font-semibold text-3xl text-slate-700'
 							>
-								<BellFill className='origin-top' />
+								<BellFill className='origin-top hover:animate-ring' />
 								<span className=''>BMaster</span>
+								<Clock />
 							</Link>
 						</Navbar.Brand>
 
@@ -170,9 +175,7 @@ export default function MainPage() {
 									<Gear /> Настройки
 								</Link>
 							</Nav>
-
 							{/* User Info Section */}
-
 							{localUser && (
 								<div className='flex flex-col text-sm text-gray-700 mt-4 mb-4'>
 									<div className='flex mb-1'>{profile}</div>
@@ -193,13 +196,12 @@ export default function MainPage() {
 				<main className='flex-grow-1 py-4'>
 					<Container fluid='xl'>
 						<Routes>
-							<Route path='/' element={<BellsPage />} />
+							<Route path='/' element={<TodayPage />} />
 							<Route path='/school/today' element={<TodayPage />} />
 							<Route path='/school/schedules' element={<SchedulesPage />} />
 							<Route path='/school/calendar' element={<CalendarPage />} />
 							<Route path='/announcements' element={<AnnouncementsPage />} />
 							<Route path='/sounds' element={<SoundsPage />} />
-							<Route path='/calendar' element={<CalendarUI />} />
 							<Route path='/settings' element={<SettingsPage />} />
 						</Routes>
 					</Container>

@@ -5,7 +5,9 @@ import {
 	getSchedules,
 	ScheduleInfo,
 	ScheduleLesson,
-	ScheduleUpdateRequest
+	ScheduleUpdateRequest,
+	deleteSchedule,
+	dupeSchedule
 } from '@/api/school/schedules';
 import { cn } from '@/utils';
 import React, {
@@ -42,6 +44,7 @@ import {
 } from 'react-bootstrap';
 import {
 	Floppy,
+	Floppy2Fill,
 	FloppyFill,
 	PencilFill,
 	PencilSquare,
@@ -122,17 +125,12 @@ const LessonCard = ({
 						</div>
 					)}
 					{editingLessons && (
-						<OverlayTrigger
-							placement='top'
-							overlay={<Tooltip>Удалить урок</Tooltip>}
+						<button
+							className='ml-auto p-2 border-1 rounded-md border-gray-300 text-gray-300 hover:text-red-500 hover:border-red-500'
+							onClick={onDelete}
 						>
-							<button
-								className='ml-auto p-2 border-1 rounded-md border-gray-300 text-gray-300 hover:text-red-500 hover:border-red-500'
-								onClick={onDelete}
-							>
-								<Trash size='1rem' />
-							</button>
-						</OverlayTrigger>
+							<Trash size='1rem' />
+						</button>
 					)}
 				</div>
 			</Panel.Header>
@@ -597,7 +595,7 @@ const SchedulesPage = () => {
 	// selected schedule extracted from query by `selectedScheduleId`
 	const selectedSchedule: ScheduleInfo | null =
 		selectedScheduleId && schedulesQuery.data
-			? schedulesQuery.data.find((s) => s.id === selectedScheduleId)
+			? schedulesQuery.data.find((s) => s.id === selectedScheduleId) || null
 			: null;
 
 	// draft copy of original schedule's lessons
@@ -606,13 +604,11 @@ const SchedulesPage = () => {
 	const [editingLessons, setEditingLessons] = useState<ScheduleLesson[] | null>(
 		null
 	);
-
-	const [controllingScheduleId, setControllingScheduleId] = useState<
-		number | null
-	>(null);
-	const controllingScheduleRef = useRef(null);
-
 	const isEditing = editingLessons !== null;
+
+	const [menuScheduleId, setMenuScheduleId] = useState<number | null>(null);
+
+	const [renaming, setRenaming] = useState<boolean>(false);
 
 	// mutation of schedule was not saved
 	// makes user able to save changes
@@ -650,13 +646,13 @@ const SchedulesPage = () => {
 		updateEditingLessons();
 	};
 
-	const [newScheduleName, setNewScheduleName] = useState<string | null>(null);
+	const [creatingSchedule, setCreatingSchedule] = useState<boolean>(false);
 
 	const createScheduleMutation = useMutation({
 		mutationKey: ['school.schedules.create'],
-		mutationFn: () => createSchedule({ name: newScheduleName, lessons: [] }),
+		mutationFn: (name: string) => createSchedule({ name, lessons: [] }),
 		onSuccess: () => {
-			setNewScheduleName(null);
+			setCreatingSchedule(false);
 			queryClient.invalidateQueries(['school.schedules']);
 		}
 	});
@@ -668,6 +664,34 @@ const SchedulesPage = () => {
 		onSuccess: () => {
 			setUnsaved(false);
 			queryClient.invalidateQueries(['school.schedules']);
+		}
+	});
+
+	const renameScheduleMutation = useMutation({
+		mutationKey: ['school.schedules.rename'],
+		mutationFn: (newName: string) =>
+			updateSchedule(selectedScheduleId, { name: newName }),
+		onSuccess: () => {
+			setRenaming(false);
+			queryClient.invalidateQueries(['school.schedules']);
+		}
+	});
+
+	const deleteScheduleMutation = useMutation({
+		mutationKey: ['school.schedules.delete'],
+		mutationFn: () => deleteSchedule(menuScheduleId),
+		onSuccess: () => {
+			queryClient.invalidateQueries(['school.schedules']);
+		}
+	});
+
+	const dupeScheduleMutation = useMutation({
+		mutationKey: ['school.schedules.dupe'],
+		mutationFn: () => dupeSchedule(menuScheduleId),
+		onSuccess: (schedule) => {
+			setMenuScheduleId(null);
+			queryClient.invalidateQueries(['school.schedules']);
+			setSelectedScheduleId(schedule.id);
 		}
 	});
 
@@ -686,6 +710,16 @@ const SchedulesPage = () => {
 			// ignore if original schedule was lost
 		}
 	}, [selectedScheduleId]);
+
+	useEffect(() => {
+		const listener = (e) => {
+			if (menuScheduleId !== null) setMenuScheduleId(null);
+			if (renaming) setRenaming(false);
+			if (creatingSchedule) setCreatingSchedule(false);
+		};
+		window.addEventListener('mousedown', listener);
+		return () => window.removeEventListener('mousedown', listener);
+	}, [menuScheduleId, renaming, creatingSchedule]);
 
 	const ctx: SchedulesContextData = {
 		editingLessons,
@@ -707,77 +741,102 @@ const SchedulesPage = () => {
 							? schedules.map((schedule) => (
 									<div
 										className={cn(
-											'flex hover:bg-slate-200 rounded-l-[0.4rem] p-2 cursor-pointer',
+											'flex items-center hover:bg-slate-200 rounded-[0.3rem] p-2',
 											schedule.id == selectedScheduleId &&
-												'bg-[rgb(76,110,245)] hover:bg-[rgb(112,139,247)] text-white'
+												'bg-blue-500 hover:bg-blue-400 text-white'
 										)}
 										onClick={() => setSelectedScheduleId(schedule.id)}
+										onMouseUp={(e) => {
+											if (e.button == 2) {
+												setMenuScheduleId(schedule.id);
+												e.stopPropagation();
+												e.preventDefault();
+											}
+										}}
 										key={schedule.id}
 									>
-										<Value>{schedule.name}</Value>
+										{schedule.id == selectedScheduleId && renaming ? (
+											<TextProperty
+												defaultValue={schedule.name}
+												edit
+												disabled={renameScheduleMutation.isPending}
+												className='h-full w-[11rem] text-black'
+												parent={{ onMouseDown: (e) => e.stopPropagation() }}
+												onSubmit={(v) => {
+													renameScheduleMutation.mutate(v);
+												}}
+											/>
+										) : (
+											<Value>{schedule.name}</Value>
+										)}
 
-										{/* <button
-											onClick={(e) => {
-												// if (controllingScheduleId === schedule.id)
-												// 	setControllingScheduleId(null);
-												// else setControllingScheduleId(schedule.id);
-												setControllingScheduleId(schedule.id);
-												e.preventDefault();
-												e.stopPropagation();
-											}}
-											ref={
-												controllingScheduleId === schedule.id
-													? controllingScheduleRef
-													: null
-											}
-											className='ml-auto w-6 h-6 aspect-square hover:bg-[rgba(0,0,0,0.2)] rounded-[0.2rem]'
-										>
-											<ThreeDotsVertical className='m-auto' />
-										</button>
-										<Overlay
-											target={controllingScheduleRef.current}
-											show={controllingScheduleId === schedule.id}
-											placement='right'
-											containerPadding={16}
-											container={document.body}
-										>
-											{(props) => (
-												<Popover id='overlay-example' {...props}>
-													My Tooltip
-												</Popover>
+										{/* Троеточие справа */}
+										<div className='ml-auto relative'>
+											<button
+												onClick={(e) => {
+													e.stopPropagation();
+													setMenuScheduleId(
+														menuScheduleId === schedule.id ? null : schedule.id
+													);
+												}}
+												className='rounded-[0.2rem] p-1 hover:bg-black/15'
+											>
+												<ThreeDotsVertical size={18} />
+											</button>
+
+											{menuScheduleId === schedule.id && (
+												<Panel
+													className='absolute right-0 z-10 flex flex-col rounded'
+													onMouseDown={(e) => {
+														e.stopPropagation();
+													}}
+												>
+													<button
+														className='p-2 text-left hover:bg-gray-100'
+														onClick={() => {
+															setSelectedScheduleId(schedule.id);
+															setRenaming(true);
+															setMenuScheduleId(null);
+														}}
+													>
+														Переименовать
+													</button>
+													<button
+														className='p-2 text-left hover:bg-gray-100'
+														onClick={() => dupeScheduleMutation.mutate()}
+														disabled={dupeScheduleMutation.isPending}
+													>
+														Дублировать
+													</button>
+													<button
+														className='p-2 text-left text-red-600 hover:bg-gray-100'
+														disabled={deleteScheduleMutation.isPending}
+														onClick={() => deleteScheduleMutation.mutate()}
+													>
+														Удалить
+													</button>
+												</Panel>
 											)}
-										</Overlay> */}
+										</div>
 									</div>
 							  ))
 							: 'Загрузка...'}
 
 						<div className='mt-20'>
-							{newScheduleName !== null ? (
-								<input
-									type='text'
-									value={newScheduleName}
-									onChange={(e) => setNewScheduleName(e.target.value)}
-									className={`px-2 py-1 min-w-12 border rounded ${
-										newScheduleName === ''
-											? 'ring-2 ring-red-300'
-											: 'border-gray-200'
-									}`}
-									onBlur={() => setNewScheduleName(null)}
-									onKeyDown={(e) => {
-										if (e.key === 'Enter') {
-											createScheduleMutation.mutate();
-											e.preventDefault();
-										}
-										if (e.key === 'Escape') {
-											setNewScheduleName(null);
-										}
-									}}
+							{creatingSchedule ? (
+								<TextProperty
+									edit
 									autoFocus
 									disabled={createScheduleMutation.isPending}
+									className='h-10 w-[13rem] text-black'
+									parent={{ onMouseDown: (e) => e.stopPropagation() }}
+									onSubmit={(v) => {
+										if (v) createScheduleMutation.mutate(v);
+									}}
 								/>
 							) : (
 								<Button
-									onClick={() => setNewScheduleName('')}
+									onClick={() => setCreatingSchedule(true)}
 									className='ml-auto px-[2rem]'
 								>
 									<Plus size={24} /> Создать
@@ -807,18 +866,24 @@ const SchedulesPage = () => {
 								if (lesson_num !== 0) {
 									const prevLesson = editingLessons[lesson_num - 1];
 									const breakDuration =
-										countMinutes(lesson.start_at) -
-										countMinutes(prevLesson.end_at);
+										lesson.start_at && prevLesson.end_at
+											? countMinutes(lesson.start_at) -
+											  countMinutes(prevLesson.end_at)
+											: null;
 									breakDisplay = (
 										<div
 											className={cn(
 												'flex items-center gap-3 py-2 px-4 text-gray-500',
-												breakDuration < 1 && 'text-red-500'
+												breakDuration !== null && breakDuration > 0
+													? ''
+													: 'text-red-500'
 											)}
 										>
 											<Name>Перемена</Name>
 											<Value>
-												{breakDuration !== null ? `${breakDuration} мин` : '—'}
+												{breakDuration !== null
+													? `${breakDuration} мин`
+													: '-- мин'}
 											</Value>
 											{/* {breakDuration < 1 && (
 												<div className='text-red-500 text-sm'>
@@ -850,16 +915,15 @@ const SchedulesPage = () => {
 								<div className='flex gap-[0.15rem]'>
 									<Button
 										className='rounded-r-none px-3'
-										onClick={() => cancelEditing()}
 										variant='danger'
+										onClick={() => cancelEditing()}
 										disabled={saveScheduleLessonsMutation.isPending}
 									>
 										<XCircleFill size={24} />
 									</Button>
 									<Button
-										className='rounded-l-none px-3 gap-[1rem]'
+										className='text-white rounded-l-none px-3 gap-[1rem]'
 										onClick={() => saveScheduleLessonsMutation.mutate()}
-										variant='success'
 									>
 										{saveScheduleLessonsMutation.isPending ? (
 											<Spinner />

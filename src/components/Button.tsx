@@ -17,6 +17,8 @@ export const Button = ({
 	let variantClass = '';
 	switch (variant) {
 		case 'danger':
+			variantClass = 'bg-rose-600 hover:bg-rose-500';
+			break;
 		case 'outline-danger':
 			// variantClass = 'bg-red-600 shadow-red-600 hover:bg-red-700';
 			variantClass = 'bg-red-600 hover:bg-red-500';
@@ -27,11 +29,12 @@ export const Button = ({
 			break;
 		case 'success':
 			// variantClass = 'bg-green-600 shadow-green-600 hover:bg-green-600';
-			variantClass = 'bg-green-700 hover:bg-green-600';
+			variantClass = 'bg-emerald-600 hover:bg-emerald-500';
 			break;
 		default:
 			// variantClass = 'bg-blue-500 shadow-blue-500 hover:bg-blue-600';
-			variantClass = 'bg-[rgb(76,110,245)] hover:bg-[rgb(112,139,247)]';
+			// variantClass = 'bg-[rgb(76,110,245)] hover:bg-[rgb(112,139,247)]';
+			variantClass = 'bg-blue-500 hover:bg-blue-400';
 	}
 
 	return (

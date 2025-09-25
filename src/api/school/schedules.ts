@@ -36,3 +36,9 @@ export const updateSchedule = async (
 	req: ScheduleUpdateRequest
 ): Promise<ScheduleInfo> =>
 	(await api.patch<ScheduleInfo>(`school/schedules/${id}`, req)).data;
+
+export const deleteSchedule = async (id: number): Promise<ScheduleInfo> =>
+	(await api.delete<ScheduleInfo>(`school/schedules/${id}`)).data;
+
+export const dupeSchedule = async (id: number): Promise<ScheduleInfo> =>
+	(await api.post<ScheduleInfo>(`school/schedules/dupe/${id}`)).data;

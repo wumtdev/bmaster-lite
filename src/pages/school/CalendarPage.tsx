@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'tailwindcss/tailwind.css';
-import { H1, H2 } from '@/components/text';
+import { H1, H2, Note } from '@/components/text';
 import { Form } from 'react-bootstrap';
 import Panel from '@/components/Panel';
 import { Typeahead } from 'react-bootstrap-typeahead';
@@ -232,17 +232,6 @@ const CalendarPage = () => {
 		[assignmentsByDay, overridesByDay, schedulesById, schedulesQuery.data]
 	);
 
-	// const moveMonth = (offset: number) => {
-	// 	const newMonth = month + offset;
-	// 	if (newMonth > 12) {
-	// 		setYear(year + 1);
-	// 		setMonth(newMonth % 12);
-	// 	} else if (newMonth < 0) {
-	// 		setYear(year - 1);
-	// 		setMonth(newMonth + 12)
-	// 	}
-	// }
-
 	let muteAllLessons = false;
 	let muteLessons = new Set<number>();
 	if (overridesByDay) {
@@ -264,128 +253,160 @@ const CalendarPage = () => {
 
 	const displayAssignment = currentAssignment || activeAssignment;
 
+	// СКРИПТ МОМЕНТ
+	let firstDayAssignment: ScheduleAssignmentInfo | null = null;
+	if (startDay !== null) {
+		const dayForTime = startDay;
+		firstDayAssignment =
+			assignmentsByDay && assignmentsByDay[dayForTime]
+				? assignmentsByDay[dayForTime]
+				: activeAssignment;
+	}
+	console.log(firstDayAssignment);
 	return (
 		<div className='mx-auto max-w-[1000rem] w-fit p-6'>
 			<H1>Календарь</H1>
 			<div className='flex gap-4'>
-				{/* Calendar */}
-				<Panel className='mb-auto'>
-					<Panel.Header className='flex px-4 py-2'>
-						<H2 className='m-auto flex items-center gap-3'>
-							<button
-								className='ring-[0.15rem] ring-transparent rounded-sm hover:ring-slate-500'
-								onClick={() => switchPrevMonth()}
-							>
-								<CaretLeftFill />
-							</button>
-							<button className='min-w-36 underline-offset-4 hover:underline'>
-								{monthNames[monthIndex]} {year}
-							</button>
-							<button
-								className='ring-[0.15rem] ring-transparent rounded-sm hover:ring-slate-500'
-								onClick={() => switchNextMonth()}
-							>
-								<CaretRightFill />
-							</button>
-						</H2>
-					</Panel.Header>
+				<div className='flex flex-col w-[22rem] items-center'>
+					{/* Calendar */}
+					<Panel>
+						<Panel.Header className='flex px-4 py-2'>
+							<H2 className='m-auto flex items-center gap-3'>
+								<button
+									className='ring-[0.15rem] ring-transparent rounded-sm hover:ring-slate-500'
+									onClick={() => switchPrevMonth()}
+								>
+									<CaretLeftFill />
+								</button>
+								<button className='min-w-36 underline-offset-4 hover:underline'>
+									{monthNames[monthIndex]} {year}
+								</button>
+								<button
+									className='ring-[0.15rem] ring-transparent rounded-sm hover:ring-slate-500'
+									onClick={() => switchNextMonth()}
+								>
+									<CaretRightFill />
+								</button>
+							</H2>
+						</Panel.Header>
 
-					<Panel.Body className='p-3 flex flex-col gap-1'>
-						<div className='grid grid-cols-7 text-center font-bold'>
-							{weekdayNames.map((day) => (
-								<div key={day}>{day}</div>
-							))}
-						</div>
+						<Panel.Body className='p-3 flex flex-col gap-1'>
+							<div className='m-auto'>
+								<div className='grid grid-cols-7 text-center font-bold'>
+									{weekdayNames.map((day) => (
+										<div key={day}>{day}</div>
+									))}
+								</div>
 
-						<div className='grid grid-cols-7 select-none text-center gap-[0.2rem]'>
-							{[...Array(weekdayNormalMap[monthStart.getDay()])].map((_, i) => (
-								<div />
-							))}
-							{[...Array(monthDayCount)].map((_, i) => {
-								const day = i + 1;
-								const isSelected =
-									startDay === day ||
-									(endDay !== null ? day >= startDay && day <= endDay : false);
-								const overrides =
-									overridesByDay !== null ? overridesByDay[day] : null;
-								const assignment =
-									assignmentsByDay !== null ? assignmentsByDay[day] : null;
-								return (
-									<div
-										key={day}
-										className={cn(
-											'w-10 relative h-10 flex cursor-pointer',
-											isSelected
-												? ' bg-red-200' +
-														(endDay === null
-															? ' rounded-lg'
-															: day === startDay
-															? ' rounded-l-lg'
-															: day === endDay
-															? ' rounded-r-lg'
-															: '')
-												: ' hover:bg-gray-200 rounded-lg'
-										)}
-										onMouseDown={(e) => {
-											if (e.shiftKey) {
-												if (day !== dayA) setDayB(day);
-											} else {
-												setDayA(day);
-												setDayB(null);
-												setBrushing(true);
-											}
-										}}
-										onMouseMove={() => {
-											if (brushing && day !== dayA && day !== dayB)
-												setDayB(day);
-										}}
-									>
-										<span
-											className={cn(
-												'm-auto',
-												monthIndex === today.getMonth() &&
-													day === today.getDate() &&
-													'text-blue-500 font-bold'
-											)}
-										>
-											{day}
-										</span>
-										<div className='absolute flex right-1 bottom-[0.25rem] text-[0.6rem]'>
-											{overrides && (
-												<BellSlashFill
-													className={
-														overrides.mute_all_lessons
-															? 'text-red-400'
-															: 'text-gray-600'
+								<div className='grid grid-cols-7 select-none text-center gap-[0.2rem]'>
+									{[...Array(weekdayNormalMap[monthStart.getDay()])].map(
+										(_, i) => (
+											<div />
+										)
+									)}
+									{[...Array(monthDayCount)].map((_, i) => {
+										const day = i + 1;
+										const isSelected =
+											startDay === day ||
+											(endDay !== null
+												? day >= startDay && day <= endDay
+												: false);
+										const overrides =
+											overridesByDay !== null ? overridesByDay[day] : null;
+										const assignment =
+											assignmentsByDay !== null ? assignmentsByDay[day] : null;
+										return (
+											<div
+												key={day}
+												className={cn(
+													'w-10 relative h-10 flex rounded-xl cursor-pointer items-center text-lg',
+													isSelected
+														? ' bg-blue-100 text-blue-900 shadow-md' +
+																(endDay === null
+																	? 'ring-4 ring-blue-300'
+																	: day === startDay
+																	? ' rounded-l-xl ring-l-4 ring-blue-300'
+																	: day === endDay
+																	? ' rounded-r-xl ring-r-4 ring-blue-300'
+																	: 'bg-blue-100')
+														: ' hover:bg-gray-100'
+												)}
+												onMouseDown={(e) => {
+													if (e.shiftKey) {
+														if (day !== dayA) setDayB(day);
+													} else {
+														setDayA(day);
+														setDayB(null);
+														setBrushing(true);
 													}
-												/>
-											)}
-											{assignment && <ClockFill className='text-blue-400' />}
-										</div>
-									</div>
-								);
-							})}
+												}}
+												onMouseMove={() => {
+													if (brushing && day !== dayA && day !== dayB)
+														setDayB(day);
+												}}
+											>
+												<span
+													className={cn(
+														'm-auto',
+														monthIndex === today.getMonth() &&
+															day === today.getDate() &&
+															'text-blue-600 font-bold'
+													)}
+												>
+													{day}
+												</span>
+												<div className='absolute flex right-1 bottom-[0.25rem] text-[0.6rem]'>
+													{overrides && (
+														<BellSlashFill
+															className={
+																overrides.mute_all_lessons
+																	? 'text-red-600'
+																	: 'text-gray-600'
+															}
+														/>
+													)}
+													{assignment && (
+														<ClockFill className='text-sky-500 ' />
+													)}
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						</Panel.Body>
+						<div className='p-3 border-t-2'>
+							<Note className='flex flex-col gap-2'>
+								<div>
+									<p>Выберите день или диапазон для внесения изменений.</p>
+									<p>• Клик — выбрать день</p>
+									<p>• Удерживать — выбрать диапазон</p>
+								</div>
+								<hr />
+								<div>
+									<p className='font-semibold mb-2'>Легенда:</p>
+									<p>
+										• <ClockFill className='inline text-blue-400' /> — новое
+										расписание
+									</p>
+									<p>
+										• <BellSlashFill className='inline text-red-400' /> —
+										выключены все звонки
+									</p>
+									<p>
+										• <BellSlashFill className='inline text-gray-600' /> —
+										выключен отдельный звонок
+									</p>
+								</div>
+							</Note>
 						</div>
-					</Panel.Body>
-				</Panel>
-
+					</Panel>
+				</div>
 				{/* Right panel */}
 				<div className='flex flex-col gap-3'>
 					<Panel>
-						<Panel.Header className='py-2 px-3'>
+						<Panel.Header className='p-2'>
 							<H2 className='flex'>
-								{/* <Form.Check
-									type='switch'
-									disabled={false}
-									className='my-auto'
-									// onChange={(e) => switchEnabled.mutate(e.target.checked)}
-									// checked={false}
-								/> */}
-								Звонки
-							</H2>
-						</Panel.Header>
-						<Panel.Body className='p-3 flex flex-col gap-1'>
-							<div className='flex items-center text-lg'>
 								<Form.Check
 									type='switch'
 									disabled={overridesByDay === null}
@@ -398,11 +419,15 @@ const CalendarPage = () => {
 									}
 									checked={!muteAllLessons}
 								/>
-								<span>Все</span>
-							</div>
-							<hr className='my-2 px-1' />
-							{[0, 1, 2, 3].map((lessonNum, idx) => (
-								<div key={idx} className='flex gap-1'>
+								{muteAllLessons ? 'Звонки' : 'Звонки'}
+							</H2>
+						</Panel.Header>
+						<Panel.Body className='p-3 flex flex-col gap-1'>
+							<p className='font-medium text-gray-700 mb-1'>Отдельные уроки:</p>
+							{/* <hr className='my-2 px-1' /> */}
+							{[0, 1, 2, 3, 4].map((lessonNum, idx) => (
+								<div key={idx} className='flex items-center gap-2'>
+									<span className='text-base'>{idx + 1}</span>
 									<Form.Check
 										type='switch'
 										disabled={overridesByDay === null}
@@ -419,7 +444,7 @@ const CalendarPage = () => {
 										}}
 										checked={!muteLessons.has(lessonNum)}
 									/>
-									<span className='mr-3'>{idx + 1}</span>
+									<span className='text-lg'>8:30 - 9:15</span>
 								</div>
 							))}
 						</Panel.Body>
@@ -459,13 +484,17 @@ const CalendarPage = () => {
 								/>
 								Новое расписание
 							</H2>
-							{/* <button className='btn btn-warning w-100'>
-								Новое расписание
-							</button> */}
 						</Panel.Header>
 						<Panel.Body className='p-3 flex flex-col gap-1'>
 							{weekdayNames.map((day, i) => {
 								const weekdayName = weekdayApiNames[i];
+								const scheduleId = displayAssignment
+									? displayAssignment[weekdayApiNames[i]]
+									: null;
+								const schedule =
+									scheduleId && schedulesById
+										? schedulesById[scheduleId] || null
+										: null;
 								return (
 									<div key={i} className='flex items-center'>
 										<span>{day}</span>
@@ -474,14 +503,7 @@ const CalendarPage = () => {
 											emptyLabel='не найдено'
 											positionFixed
 											disabled={currentAssignment === null}
-											selected={
-												(displayAssignment &&
-													schedulesById &&
-													displayAssignment[weekdayApiNames[i]] && [
-														schedulesById[displayAssignment[weekdayApiNames[i]]]
-													]) ||
-												[]
-											}
+											selected={schedule ? [schedule] : []}
 											onChange={(selected) => {
 												console.log(selected);
 												// @ts-ignore
@@ -501,11 +523,8 @@ const CalendarPage = () => {
 											}}
 											options={schedulesQuery.data || []}
 											labelKey='name'
-											placeholder='отсутствует'
+											placeholder='Без расписания'
 										/>
-										{/* <Button className='ml-auto' variant='outline-secondary'>
-										Шаблон
-									</Button> */}
 									</div>
 								);
 							})}
