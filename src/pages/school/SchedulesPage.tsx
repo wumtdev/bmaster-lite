@@ -746,12 +746,10 @@ const SchedulesPage = () => {
 												'bg-blue-500 hover:bg-blue-400 text-white'
 										)}
 										onClick={() => setSelectedScheduleId(schedule.id)}
-										onMouseUp={(e) => {
-											if (e.button == 2) {
-												setMenuScheduleId(schedule.id);
-												e.stopPropagation();
-												e.preventDefault();
-											}
+										onContextMenu={(e) => {
+											setMenuScheduleId(schedule.id);
+											e.stopPropagation();
+											e.preventDefault();
 										}}
 										key={schedule.id}
 									>
@@ -874,9 +872,9 @@ const SchedulesPage = () => {
 										<div
 											className={cn(
 												'flex items-center gap-3 py-2 px-4 text-gray-500',
-												breakDuration !== null && breakDuration > 0
-													? ''
-													: 'text-red-500'
+												breakDuration !== null &&
+													breakDuration > 0 &&
+													'text-red-500'
 											)}
 										>
 											<Name>Перемена</Name>

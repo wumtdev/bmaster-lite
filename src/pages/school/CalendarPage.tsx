@@ -253,6 +253,56 @@ const CalendarPage = () => {
 
 	const displayAssignment = currentAssignment || activeAssignment;
 
+	type LessonTime = { start_at: string; end_at: string };
+	let selectedDaysLessons: (LessonTime | null)[] = [];
+
+	console.log(startDay, endDay);
+
+	if (startDay !== null && schedulesById && assignmentsByDay) {
+		const isEqual = (a: LessonTime, b: LessonTime) =>
+			typeof a === 'object' &&
+			a !== null &&
+			typeof b === 'object' &&
+			b !== null &&
+			a.start_at === b.start_at &&
+			a.end_at === b.end_at;
+
+		let lastAssignment = activeAssignment;
+		let lastWeekday = weekdayNormalMap[startDate.getDay()];
+		selectedDaysLessons = Array.from(
+			(lastAssignment &&
+				schedulesById[lastAssignment[weekdayApiNames[lastWeekday]]]?.lessons) ||
+				[]
+		);
+		console.log('SELECTED DAYS 2 LESSONS:', selectedDaysLessons);
+
+		if (endDay !== null) {
+			for (let day = startDay + 1; day <= endDay; day++) {
+				lastAssignment = assignmentsByDay[day] || lastAssignment;
+				if (lastWeekday < 7) lastWeekday++;
+				else lastWeekday = 1;
+
+				const schedule =
+					(lastAssignment &&
+						schedulesById[lastAssignment[weekdayApiNames[lastWeekday]]]
+							?.lessons) ||
+					[];
+
+				for (
+					let i = 0;
+					i < Math.max(selectedDaysLessons.length, schedule.length);
+					i++
+				) {
+					if (!isEqual(schedule[i], selectedDaysLessons[i])) {
+						selectedDaysLessons[i] = null;
+					}
+				}
+			}
+		}
+	}
+
+	console.log('SELECTED DAYS LESSONS:', selectedDaysLessons);
+
 	// СКРИПТ МОМЕНТ
 	let firstDayAssignment: ScheduleAssignmentInfo | null = null;
 	if (startDay !== null) {
@@ -319,17 +369,18 @@ const CalendarPage = () => {
 											<div
 												key={day}
 												className={cn(
-													'w-10 relative h-10 flex rounded-xl cursor-pointer items-center text-lg',
+													'w-10 relative h-10 flex rounded-md cursor-pointer items-center text-lg',
 													isSelected
-														? ' bg-blue-100 text-blue-900 shadow-md' +
+														? ' bg-blue-100 text-blue-900' +
 																(endDay === null
-																	? 'ring-4 ring-blue-300'
+																	? ''
 																	: day === startDay
-																	? ' rounded-l-xl ring-l-4 ring-blue-300'
+																	? ' rounded-l-xl'
 																	: day === endDay
-																	? ' rounded-r-xl ring-r-4 ring-blue-300'
+																	? ' rounded-r-xl'
 																	: 'bg-blue-100')
-														: ' hover:bg-gray-100'
+														: ' hover:bg-gray-100',
+													day == dayA && 'ring-inset ring-2 ring-blue-300'
 												)}
 												onMouseDown={(e) => {
 													if (e.shiftKey) {
@@ -348,7 +399,8 @@ const CalendarPage = () => {
 												<span
 													className={cn(
 														'm-auto',
-														monthIndex === today.getMonth() &&
+														year === today.getFullYear() &&
+															monthIndex === today.getMonth() &&
 															day === today.getDate() &&
 															'text-blue-600 font-bold'
 													)}
@@ -360,13 +412,13 @@ const CalendarPage = () => {
 														<BellSlashFill
 															className={
 																overrides.mute_all_lessons
-																	? 'text-red-600'
+																	? 'text-red-400'
 																	: 'text-gray-600'
 															}
 														/>
 													)}
 													{assignment && (
-														<ClockFill className='text-sky-500 ' />
+														<ClockFill className='text-blue-400 ' />
 													)}
 												</div>
 											</div>
@@ -422,15 +474,14 @@ const CalendarPage = () => {
 								{muteAllLessons ? 'Звонки' : 'Звонки'}
 							</H2>
 						</Panel.Header>
-						<Panel.Body className='p-3 flex flex-col gap-1'>
+						<Panel.Body className='p-3 flex flex-col gap-1 min-w-[16rem]'>
 							<p className='font-medium text-gray-700 mb-1'>Отдельные уроки:</p>
 							{/* <hr className='my-2 px-1' /> */}
-							{[0, 1, 2, 3, 4].map((lessonNum, idx) => (
-								<div key={idx} className='flex items-center gap-2'>
-									<span className='text-base'>{idx + 1}</span>
+							{selectedDaysLessons.map((lessonTime, lessonNum) => (
+								<div key={lessonNum} className='flex items-center gap-2'>
 									<Form.Check
 										type='switch'
-										disabled={overridesByDay === null}
+										disabled={overridesMutation.isPending}
 										onChange={(e) => {
 											const newMuteLessons = new Set(muteLessons);
 
@@ -444,7 +495,15 @@ const CalendarPage = () => {
 										}}
 										checked={!muteLessons.has(lessonNum)}
 									/>
-									<span className='text-lg'>8:30 - 9:15</span>
+									<div className='text-lg flex gap-2'>
+										<span>{lessonNum + 1}.</span>
+
+										<span>
+											{lessonTime
+												? `${lessonTime.start_at} - ${lessonTime.end_at}`
+												: 'конфликт'}
+										</span>
+									</div>
 								</div>
 							))}
 						</Panel.Body>
