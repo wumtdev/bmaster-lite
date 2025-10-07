@@ -497,12 +497,15 @@ const CalendarPage = () => {
 									/>
 									<div className='text-lg flex gap-2'>
 										<span>{lessonNum + 1}.</span>
-
-										<span>
-											{lessonTime
-												? `${lessonTime.start_at} - ${lessonTime.end_at}`
-												: 'конфликт'}
-										</span>
+										<div className='rounded-solid rounded-lg'>
+											{lessonTime ? (
+												<span>{`${lessonTime.start_at} - ${lessonTime.end_at}`}</span>
+											) : (
+												<span className='animate-flashRed text-red-600 font-semibold'>
+													конфликт!
+												</span>
+											)}
+										</div>
 									</div>
 								</div>
 							))}
