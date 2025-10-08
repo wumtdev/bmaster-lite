@@ -38,6 +38,7 @@ import Foreground from './components/Foreground';
 import Panel from './components/Panel';
 
 import { useState, useEffect } from 'react';
+import AccountsPage from './pages/access/AccountsPage';
 
 export default function MainPage() {
 	const {
@@ -174,6 +175,9 @@ export default function MainPage() {
 								<Link to='/settings' className='flex items-center m-1 gap-2'>
 									<Gear /> Настройки
 								</Link>
+								<Link to='/accounts' className='flex items-center m-1 gap-2'>
+									<Person /> Аккаунты
+								</Link>
 							</Nav>
 							{/* User Info Section */}
 							{localUser && (
@@ -203,6 +207,7 @@ export default function MainPage() {
 							<Route path='/announcements' element={<AnnouncementsPage />} />
 							<Route path='/sounds' element={<SoundsPage />} />
 							<Route path='/settings' element={<SettingsPage />} />
+							<Route path='/accounts' element={<AccountsPage />} />
 						</Routes>
 					</Container>
 				</main>

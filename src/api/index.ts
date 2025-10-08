@@ -14,9 +14,8 @@ export let SECURED = false;
 if (typeof window !== 'undefined') {
 	if (window.location.port === '5173') {
 		// DEV MODE
-		ORIGIN = `${window.location.hostname}:8000`
-	}
-	else {
+		ORIGIN = `${window.location.hostname}:8000`;
+	} else {
 		// PRODUCTION MODE
 		ORIGIN = '';
 		if (window.location.protocol === 'https:') {
@@ -28,7 +27,7 @@ if (typeof window !== 'undefined') {
 export const HTTP_BASE_URL = ORIGIN === '' ? '' : `http://${ORIGIN}`;
 export const WS_BASE_URL = ORIGIN === '' ? '' : `ws://${ORIGIN}`;
 
-const api = axios.create({
+export const api = axios.create({
 	baseURL: `${HTTP_BASE_URL}/api` // Replace with your backend base URL
 });
 

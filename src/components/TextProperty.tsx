@@ -17,7 +17,7 @@ export const TextProperty = ({
 	edit?: boolean;
 	defaultEdit?: boolean;
 	value: string;
-	parent: HTMLAttributes<HTMLDivElement>;
+	parent?: HTMLAttributes<HTMLDivElement>;
 }) => {
 	if (disabled === undefined) disabled = false;
 	if (defaultEdit === undefined) defaultEdit = false;
