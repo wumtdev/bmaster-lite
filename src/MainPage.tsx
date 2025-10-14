@@ -105,7 +105,7 @@ export default function MainPage() {
 			const account = localUser as AccountLocalInfo;
 			profile = (
 				<>
-					<PersonCircle size='20' className='mr-2' />
+					<PersonCircle size='1.2rem' />
 					<span>{account.name}</span>
 				</>
 			);
@@ -113,7 +113,7 @@ export default function MainPage() {
 		case 'root':
 			profile = (
 				<>
-					<Wrench size='20' className='mr-2' />
+					<Wrench size='1.2rem' />
 					<span>Администратор</span>
 				</>
 			);
@@ -124,94 +124,68 @@ export default function MainPage() {
 
 	return (
 		<LocalUserProvider localUser={localUser}>
-			<div className='flex flex-col relative w-screen h-screen overflow-y-auto'>
-				{/* Шапка */}
-				<Navbar expand='lg' className='p-0 bg-[#F1F5F9] shadow-md'>
-					<Container>
-						{/* Brand Section */}
-						<Navbar.Brand className='flex flex-col items-center mr-14'>
-							<Link
-								to='/'
-								className='flex gap-2 items-center font-semibold text-3xl text-slate-700'
-							>
-								<BellFill className='origin-top hover:animate-ring' />
-								<span className=''>BMaster</span>
-								<Clock />
-							</Link>
-						</Navbar.Brand>
+			<div className='flex flex-col relative w-screen h-screen'>
+				<div className='flex gap-4 px-[4rem] py-[0.4rem] items-center justify-center bg-[#F1F5F9] shadow-md'>
+					<div className='flex flex-col items-center'>
+						<Link
+							to='/'
+							className='flex gap-2 items-center font-semibold text-3xl text-slate-700'
+						>
+							<BellFill className='origin-top hover:animate-ring' />
+							<span className=''>BMaster</span>
+							<Clock />
+						</Link>
+					</div>
 
-						<Navbar.Toggle aria-controls='main-navbar' />
-
-						<Navbar.Collapse id='main-navbar'>
-							{/* Navigation Links */}
-							<Nav className='me-auto text-xl flex gap-3'>
-								<Link
-									to='/school/today'
-									className='flex items-center m-1 gap-2'
-								>
-									<Bell /> Сегодня
-								</Link>
-								<Link
-									to='/school/schedules'
-									className='flex items-center m-1 gap-2'
-								>
-									<List /> Расписания
-								</Link>
-								<Link
-									to='/school/calendar'
-									className='flex items-center m-1 gap-2'
-								>
-									<CalendarDate /> Календарь
-								</Link>
-								<Link
-									to='/announcements'
-									className='flex items-center m-1 gap-2'
-								>
-									<Mic /> Объявления
-								</Link>
-								<Link to='/sounds' className='flex items-center m-1 gap-2'>
-									<MusicNoteList /> Звуки
-								</Link>
-								<Link to='/settings' className='flex items-center m-1 gap-2'>
-									<Gear /> Настройки
-								</Link>
-								<Link to='/accounts' className='flex items-center m-1 gap-2'>
-									<Person /> Аккаунты
-								</Link>
-							</Nav>
-							{/* User Info Section */}
-							{localUser && (
-								<div className='flex flex-col text-sm text-gray-700 mt-4 mb-4'>
-									<div className='flex mb-1'>{profile}</div>
-									<div
-										className='flex mb-1 cursor-pointer'
-										onClick={handleLogout}
-									>
-										<DoorOpen size={20} className='mr-2' />
-										<span>Выйти</span>
-									</div>
-								</div>
-							)}
-						</Navbar.Collapse>
-					</Container>
-				</Navbar>
+					<div className='text-xl flex flex-wrap gap-1 space-x-4 overflow-x-auto'>
+						<Link to='/school/today' className='flex items-center gap-2'>
+							<Bell /> Сегодня
+						</Link>
+						<Link to='/school/schedules' className='flex items-center gap-2'>
+							<List /> Расписания
+						</Link>
+						<Link to='/school/calendar' className='flex items-center gap-2'>
+							<CalendarDate /> Календарь
+						</Link>
+						<Link to='/announcements' className='flex items-center gap-2'>
+							<Mic /> Объявления
+						</Link>
+						<Link to='/sounds' className='flex items-center gap-2'>
+							<MusicNoteList /> Звуки
+						</Link>
+						<Link to='/settings' className='flex items-center gap-2'>
+							<Gear /> Настройки
+						</Link>
+						<Link to='/accounts' className='flex items-center gap-2'>
+							<Person /> Аккаунты
+						</Link>
+					</div>
+					{localUser && (
+						<div className='flex flex-col gap-1 text-sm text-gray-700 mt-4 mb-4'>
+							<div className='flex gap-1'>{profile}</div>
+							<button className='flex gap-1' onClick={handleLogout}>
+								<DoorOpen size='1.2rem' />
+								<span>Выйти</span>
+							</button>
+						</div>
+					)}
+				</div>
 
 				{/* Main Content */}
-				<main className='flex-grow-1 py-4'>
-					<Container fluid='xl'>
-						<Routes>
-							<Route path='/' element={<TodayPage />} />
-							<Route path='/school/today' element={<TodayPage />} />
-							<Route path='/school/schedules' element={<SchedulesPage />} />
-							<Route path='/school/calendar' element={<CalendarPage />} />
-							<Route path='/announcements' element={<AnnouncementsPage />} />
-							<Route path='/sounds' element={<SoundsPage />} />
-							<Route path='/settings' element={<SettingsPage />} />
-							<Route path='/accounts' element={<AccountsPage />} />
-						</Routes>
-					</Container>
+				<main className='flex-1 py-4 overflow-y-auto'>
+					{/* <Container fluid='xl'> */}
+					<Routes>
+						<Route path='/' element={<TodayPage />} />
+						<Route path='/school/today' element={<TodayPage />} />
+						<Route path='/school/schedules' element={<SchedulesPage />} />
+						<Route path='/school/calendar' element={<CalendarPage />} />
+						<Route path='/announcements' element={<AnnouncementsPage />} />
+						<Route path='/sounds' element={<SoundsPage />} />
+						<Route path='/settings' element={<SettingsPage />} />
+						<Route path='/accounts' element={<AccountsPage />} />
+					</Routes>
 				</main>
-				{/* Подвал */}
+
 				<footer className='bg-slate-400 flex p-10 font-bold'>BMaster</footer>
 			</div>
 			{/* Очередь воспроизведения */}
