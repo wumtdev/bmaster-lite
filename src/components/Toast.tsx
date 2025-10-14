@@ -1,28 +1,40 @@
 import { useState, useEffect, useRef } from 'react';
 
-function Toast({ show, setShow, message, variant = 'success', delay = 5000 }) {
+interface ToastProps {
+	show: boolean;
+	setShow: (show: boolean) => void;
+	message: string;
+	variant?: 'success' | 'danger' | 'warning';
+	delay?: number;
+}
+
+function Toast({
+	show,
+	setShow,
+	message,
+	variant = 'success',
+	delay = 5000
+}: ToastProps) {
 	const [progress, setProgress] = useState(100);
-	const startTimeRef = useRef(null);
-	const animationFrameRef = useRef(null);
+	const startTimeRef = useRef<number | null>(null);
+	const animationFrameRef = useRef<number | null>(null);
 
 	useEffect(() => {
 		if (!show) {
 			setProgress(100);
-			if (animationFrameRef.current) {
+			if (animationFrameRef.current)
 				cancelAnimationFrame(animationFrameRef.current);
-			}
 			return;
 		}
 
-		// Сбрасываем прогресс при показе
 		setProgress(100);
 		startTimeRef.current = Date.now();
 
 		const animate = () => {
+			if (!startTimeRef.current) return;
 			const elapsed = Date.now() - startTimeRef.current;
 			const remaining = delay - elapsed;
 			const percentage = Math.max((remaining / delay) * 100, 0);
-
 			setProgress(percentage);
 
 			if (remaining > 0) {
@@ -35,15 +47,13 @@ function Toast({ show, setShow, message, variant = 'success', delay = 5000 }) {
 		animationFrameRef.current = requestAnimationFrame(animate);
 
 		return () => {
-			if (animationFrameRef.current) {
+			if (animationFrameRef.current)
 				cancelAnimationFrame(animationFrameRef.current);
-			}
 		};
 	}, [show, delay, setShow]);
 
-	// Стили для разных вариантов тоста
-	const getToastStyles = () => {
-		const baseStyles = {
+	const getToastStyles = (): React.CSSProperties => {
+		const baseStyles: React.CSSProperties = {
 			position: 'fixed',
 			top: '20px',
 			right: '20px',
@@ -57,7 +67,7 @@ function Toast({ show, setShow, message, variant = 'success', delay = 5000 }) {
 			overflow: 'hidden',
 			fontFamily: 'system-ui, -apple-system, sans-serif',
 			fontSize: '14px',
-			fontWeight: '500',
+			fontWeight: 500,
 			transition: 'transform 0.2s ease, opacity 0.2s ease',
 			transform: show ? 'translateX(0)' : 'translateX(100%)',
 			opacity: show ? 1 : 0
@@ -65,43 +75,26 @@ function Toast({ show, setShow, message, variant = 'success', delay = 5000 }) {
 
 		switch (variant) {
 			case 'success':
-				return {
-					...baseStyles,
-					backgroundColor: '#10b981',
-					color: 'white'
-				};
+				return { ...baseStyles, backgroundColor: '#10b981', color: 'white' };
 			case 'danger':
-				return {
-					...baseStyles,
-					backgroundColor: '#ef4444',
-					color: 'white'
-				};
+				return { ...baseStyles, backgroundColor: '#ef4444', color: 'white' };
 			case 'warning':
-				return {
-					...baseStyles,
-					backgroundColor: '#f59e0b',
-					color: '#1f2937'
-				};
+				return { ...baseStyles, backgroundColor: '#f59e0b', color: '#1f2937' };
 			default:
-				return {
-					...baseStyles,
-					backgroundColor: '#10b981',
-					color: 'white'
-				};
+				return { ...baseStyles, backgroundColor: '#10b981', color: 'white' };
 		}
 	};
 
-	// Цвета для прогрессбара (ненасыщенные версии основных цветов)
 	const getProgressBarStyles = () => {
-		const baseStyle = {
+		const baseStyle: React.CSSProperties = {
 			height: '3px',
 			width: '100%',
 			borderRadius: '0',
 			transition: 'none',
-			backgroundColor: 'rgba(255, 255, 255, 0.3)' // светлый фон по умолчанию
+			backgroundColor: 'rgba(255, 255, 255, 0.3)'
 		};
 
-		const progressStyle = {
+		const progressStyle: React.CSSProperties = {
 			height: '100%',
 			borderRadius: '0',
 			transition: 'width 0.1s linear'
@@ -109,8 +102,6 @@ function Toast({ show, setShow, message, variant = 'success', delay = 5000 }) {
 
 		switch (variant) {
 			case 'success':
-				progressStyle.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-				break;
 			case 'danger':
 				progressStyle.backgroundColor = 'rgba(255, 255, 255, 0.8)';
 				break;
@@ -137,20 +128,11 @@ function Toast({ show, setShow, message, variant = 'success', delay = 5000 }) {
 			role='alert'
 			aria-live='polite'
 		>
-			{/* Прогрессбар */}
 			<div style={baseStyle}>
 				<div style={{ ...progressStyle, width: `${progress}%` }} />
 			</div>
 
-			{/* Тело тоста */}
-			<div
-				style={{
-					padding: '12px 16px',
-					lineHeight: '1.5'
-				}}
-			>
-				{message}
-			</div>
+			<div style={{ padding: '12px 16px', lineHeight: '1.5' }}>{message}</div>
 		</div>
 	);
 }
