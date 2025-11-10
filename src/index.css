@@ -29,3 +29,8 @@ h1 {
 	color: #475569; /* text-slate-600 */
 	margin-bottom: 1rem; /* mb-4 */
 }
+
+.rbt-menu {
+	z-index: 9999 !important;
+	position: fixed !important;
+}

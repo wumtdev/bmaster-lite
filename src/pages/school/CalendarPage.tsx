@@ -569,7 +569,10 @@ const CalendarPage = () => {
 											onChange={(selected) => {
 												console.log(selected);
 												// @ts-ignore
-												const val: ScheduleInfo | undefined = selected[0];
+												const val = selected[0] as
+													| ScheduleInfo
+													| 'none'
+													| undefined;
 												console.log(val);
 												const weekdays = {
 													monday: currentAssignment?.monday,
@@ -580,12 +583,23 @@ const CalendarPage = () => {
 													saturday: currentAssignment?.saturday,
 													sunday: currentAssignment?.sunday
 												};
-												weekdays[weekdayName] = val ? val.id : null;
+												weekdays[weekdayName] =
+													val && val !== 'none' ? val.id : null;
 												assignmentsMutation.mutate(weekdays);
 											}}
-											options={schedulesQuery.data || []}
+											options={[
+												{ id: 'none', name: 'Без расписания' },
+												...(schedulesQuery.data || [])
+											]}
 											labelKey='name'
 											placeholder='Без расписания'
+											renderMenuItemChildren={(option) => (
+												<div
+													className={option.id === 'none' ? 'text-red-600' : ''}
+												>
+													{option.name}
+												</div>
+											)}
 										/>
 									</div>
 								);
