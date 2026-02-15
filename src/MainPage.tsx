@@ -126,15 +126,15 @@ export default function MainPage() {
 		<LocalUserProvider localUser={localUser}>
 			<div className='flex flex-col relative w-screen h-screen'>
 				<div className='flex gap-4 px-[4rem] py-[0.4rem] items-center justify-center bg-[#F1F5F9] shadow-md'>
-					<div className='flex flex-col items-center'>
+					<div className='flex items-center gap-3'>
 						<Link
 							to='/'
 							className='flex gap-2 items-center font-semibold text-3xl text-slate-700'
 						>
 							<BellFill className='origin-top hover:animate-ring' />
 							<span className=''>BMaster</span>
-							<Clock />
 						</Link>
+						<Clock />
 					</div>
 
 					<div className='text-xl flex flex-wrap gap-1 space-x-4 overflow-x-auto'>
@@ -157,7 +157,7 @@ export default function MainPage() {
 							<Gear /> Настройки
 						</Link>
 						<Link to='/accounts' className='flex items-center gap-2'>
-							<Person /> Аккаунты
+							<Person /> Пользователи
 						</Link>
 					</div>
 					{localUser && (

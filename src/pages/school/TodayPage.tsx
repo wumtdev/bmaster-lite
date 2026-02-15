@@ -265,7 +265,7 @@ const TodayPage = () => {
 							</div>
 						</Panel.Header>
 
-						<Panel.Body className='space-y-4 max-h-[60vh] overflow-y-auto'>
+						<Panel.Body className='space-y-4'>
 							{!displayLessons || displayLessons.length === 0 ? (
 								<div className='text-gray-500 text-center py-8'>
 									<div className='flex items-center justify-center space-x-2'>

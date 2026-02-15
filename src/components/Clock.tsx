@@ -1,8 +1,50 @@
-import { useState, useEffect } from 'react';
+import { getActiveAssignment } from '@/api/school/assignments';
+import { getSchedules } from '@/api/school/schedules';
+import { countMinutes, formatDate } from '@/utils';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+
+const weekdayApiNames = [
+	'sunday',
+	'monday',
+	'tuesday',
+	'wednesday',
+	'thursday',
+	'friday',
+	'saturday'
+];
+
+const formatMinutes = (minutes: number) => {
+	const hours = Math.floor(minutes / 60);
+	const remainder = minutes % 60;
+
+	if (hours < 1) return `${remainder} мин`;
+	if (remainder === 0) return `${hours} ч`;
+	return `${hours} ч ${remainder} мин`;
+};
+
+const toSeconds = (value: string) => {
+	if (!value) return null;
+	const minutes = countMinutes(value);
+	if (Number.isNaN(minutes)) return null;
+	return minutes * 60;
+};
 
 export default function Clock() {
 	const [time, setTime] = useState(new Date());
 	const [showColon, setShowColon] = useState(true);
+	const dateKey = formatDate(time);
+
+	const schedulesQuery = useQuery({
+		queryKey: ['school.schedules'],
+		queryFn: () => getSchedules()
+	});
+
+	const activeAssignmentQuery = useQuery({
+		queryKey: ['school.assignment.active', dateKey],
+		queryFn: () => getActiveAssignment(dateKey),
+		refetchInterval: 60 * 1000
+	});
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -14,12 +56,64 @@ export default function Clock() {
 
 	const hours = time.getHours().toString().padStart(2, '0');
 	const minutes = time.getMinutes().toString().padStart(2, '0');
+	const dayName = weekdayApiNames[time.getDay()];
+	const scheduleId = activeAssignmentQuery.data?.[dayName] ?? null;
+	const schedule =
+		scheduleId && schedulesQuery.data
+			? schedulesQuery.data.find((item) => item.id === scheduleId) || null
+			: null;
+
+	const countdownLabel = useMemo(() => {
+		if (schedulesQuery.isLoading || activeAssignmentQuery.isLoading) {
+			return 'Загрузка расписания...';
+		}
+
+		const lessons = schedule?.lessons || [];
+		if (lessons.length === 0) {
+			return 'Уроков сегодня нет';
+		}
+
+		const nowSeconds =
+			time.getHours() * 3600 + time.getMinutes() * 60 + time.getSeconds();
+		const normalizedLessons = lessons
+			.map((lesson, index) => ({
+				index: index + 1,
+				start: toSeconds(lesson.start_at),
+				end: toSeconds(lesson.end_at)
+			}))
+			.filter((lesson) => lesson.start !== null && lesson.end !== null)
+			.sort((a, b) => a.start - b.start);
+
+		for (const lesson of normalizedLessons) {
+			if (nowSeconds < lesson.start) {
+				const leftMinutes = Math.ceil((lesson.start - nowSeconds) / 60);
+				return `До начала урока ${formatMinutes(leftMinutes)}`;
+			}
+
+			if (nowSeconds >= lesson.start && nowSeconds < lesson.end) {
+				const leftMinutes = Math.ceil((lesson.end - nowSeconds) / 60);
+				return `До конца урока ${formatMinutes(leftMinutes)}`;
+			}
+		}
+
+		return 'Уроки на сегодня закончились';
+	}, [activeAssignmentQuery.isLoading, schedule, schedulesQuery.isLoading, time]);
+
+	const dateLabel = time.toLocaleDateString('ru-RU', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric'
+	});
 
 	return (
-		<span className='text-slate-600 text-sm font-mono'>
-			{hours}
-			<span className={showColon ? '' : 'opacity-0'}>:</span>
-			{minutes}
-		</span>
+		<div className='flex flex-col items-start text-slate-600'>
+			<div className='text-base font-mono leading-tight'>
+				{hours}
+				<span className={showColon ? '' : 'opacity-0'}>:</span>
+				{minutes}
+			</div>
+			<div className='text-xs leading-tight'>{dateLabel}</div>
+			<div className='text-xs text-slate-500 leading-tight'>{countdownLabel}</div>
+		</div>
 	);
 }

@@ -1,6 +1,6 @@
 // @ts-nocheck
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Card, Spinner } from 'react-bootstrap';
+import React, { useEffect, useRef, useState } from 'react';
+import { Spinner } from 'react-bootstrap';
 import { Mic, StopCircle } from 'react-bootstrap-icons';
 import { WS_BASE_URL } from '@/api';
 import { H1, H2, Note } from '@/components/text';
@@ -11,14 +11,6 @@ import Kbd from '@/components/Kbd';
 const RATE = 48000;
 const CHANNELS = 1;
 
-type ConnectionRef = {
-	ws?: WebSocket;
-	audioContext?: AudioContext;
-	workletNode?: AudioWorkletNode | null;
-	processorNode?: ScriptProcessorNode | null;
-	stream?: MediaStream | null;
-};
-
 interface Connection {
 	ws: WebSocket;
 	audioContext: AudioContext;
@@ -27,29 +19,52 @@ interface Connection {
 	streamNode: MediaStreamAudioSourceNode;
 }
 
+type BroadcastStatus = 'idle' | 'connecting' | 'waiting' | 'started' | 'error';
+
 export default function AnnouncementsPage(): JSX.Element {
 	const [connection, setConnection] = useState<Connection | null>(null);
-	const [status, setStatus] = useState<
-		'idle' | 'connecting' | 'waiting' | 'started'
-	>('idle');
-	const [error, setError] = useState<'string' | null>(null);
+	const [status, setStatus] = useState<BroadcastStatus>('idle');
+	const [error, setError] = useState<string | null>(null);
+	const connectionRef = useRef<Connection | null>(null);
 
-	const blocked = !(
-		status === 'idle' ||
-		status === 'started' ||
-		status === 'waiting'
-	);
+	const blocked = status === 'connecting';
 
-	const updateConnection = () => setConnection(Object.assign({}, connection));
+	useEffect(() => {
+		connectionRef.current = connection;
+	}, [connection]);
 
-	const stop = async () => {
-		connection.streamNode.disconnect();
-		connection.processorNode.disconnect();
-		await connection.audioContext.close();
-		connection.stream.getTracks().forEach((track) => track.stop());
-		connection.ws.close();
+	const stop = async (
+		options: { closeSocket?: boolean; nextStatus?: BroadcastStatus } = {}
+	) => {
+		const { closeSocket = true, nextStatus = 'idle' } = options;
+		const conn = connectionRef.current;
+		connectionRef.current = null;
 		setConnection(null);
-		setStatus('idle');
+		setStatus(nextStatus);
+
+		if (!conn) return;
+
+		try {
+			conn.streamNode.disconnect();
+		} catch {}
+		try {
+			conn.processorNode.disconnect();
+		} catch {}
+		try {
+			await conn.audioContext.close();
+		} catch {}
+		try {
+			conn.stream.getTracks().forEach((track) => track.stop());
+		} catch {}
+		if (
+			closeSocket &&
+			(conn.ws.readyState === WebSocket.OPEN ||
+				conn.ws.readyState === WebSocket.CONNECTING)
+		) {
+			try {
+				conn.ws.close();
+			} catch {}
+		}
 	};
 
 	useEffect(() => {
@@ -72,14 +87,25 @@ export default function AnnouncementsPage(): JSX.Element {
 
 		const wsError = (e) => {
 			console.error('[WS] Error:', e);
-			stop();
+			setError('Ошибка WebSocket-соединения');
+			stop({ closeSocket: false, nextStatus: 'error' });
 		};
 
 		const wsMessage = (e) => {
 			const data = e.data;
 			console.log('[WS] Message:', data);
-			const msg = JSON.parse(data);
+			let msg: any = null;
+			try {
+				msg = JSON.parse(data);
+			} catch {
+				return;
+			}
+
 			switch (msg.type) {
+				case 'error':
+					setError(msg.error || 'Ошибка эфира');
+					stop({ closeSocket: false, nextStatus: 'error' });
+					break;
 				case 'started':
 					setStatus('started');
 					break;
@@ -94,12 +120,11 @@ export default function AnnouncementsPage(): JSX.Element {
 
 		const wsClose = () => {
 			console.log('[WS] Closed');
-			stop();
+			if (connectionRef.current) stop({ closeSocket: false, nextStatus: 'idle' });
 		};
 
 		if (ws.readyState === WebSocket.OPEN) {
-			// call handler if connection was made before listener registration
-			if (status === 'connecting') wsOpen();
+			wsOpen();
 		} else ws.addEventListener('open', wsOpen);
 
 		ws.addEventListener('error', wsError);
@@ -122,6 +147,7 @@ export default function AnnouncementsPage(): JSX.Element {
 			if (status !== 'started') return;
 			const data = new Float32Array(e.inputBuffer.getChannelData(0));
 			const { ws } = connection;
+			if (ws.readyState !== WebSocket.OPEN) return;
 			ws.send(data.buffer);
 		};
 
@@ -132,43 +158,80 @@ export default function AnnouncementsPage(): JSX.Element {
 	}, [connection, status]);
 
 	const start = async () => {
-		const ws = new WebSocket(`${WS_BASE_URL}/api/queries/stream`);
-		ws.binaryType = 'arraybuffer';
+		setError(null);
+		const token = localStorage.getItem('bmaster.auth.token');
+		if (!token) {
+			setError('Требуется авторизация');
+			setStatus('error');
+			return;
+		}
 
-		const stream = await navigator.mediaDevices.getUserMedia({
-			audio: {
-				sampleRate: RATE,
-				channelCount: CHANNELS
-			},
-			video: false
-		});
+		let ws: WebSocket | null = null;
+		let stream: MediaStream | null = null;
+		let audioContext: AudioContext | null = null;
+		let streamNode: MediaStreamAudioSourceNode | null = null;
+		let processorNode: ScriptProcessorNode | null = null;
 
-		// @ts-ignore
-		const audioContext: AudioContext = new (window.AudioContext ||
-			window.webkitAudioContext)({
-			sampleRate: RATE
-		});
+		try {
+			setStatus('connecting');
+			const wsUrl = `${WS_BASE_URL}/api/queries/stream?token=${encodeURIComponent(token)}`;
+			ws = new WebSocket(wsUrl);
+			ws.binaryType = 'arraybuffer';
 
-		const streamNode = audioContext.createMediaStreamSource(stream);
+			stream = await navigator.mediaDevices.getUserMedia({
+				audio: {
+					sampleRate: RATE,
+					channelCount: CHANNELS
+				},
+				video: false
+			});
 
-		const processorNode: ScriptProcessorNode =
-			audioContext.createScriptProcessor(16384, 1, 1);
+			// @ts-ignore
+			audioContext = new (window.AudioContext || window.webkitAudioContext)({
+				sampleRate: RATE
+			});
+			streamNode = audioContext.createMediaStreamSource(stream);
+			processorNode = audioContext.createScriptProcessor(16384, 1, 1);
+			streamNode.connect(processorNode);
+			processorNode.connect(audioContext.destination);
 
-		streamNode.connect(processorNode);
-		processorNode.connect(audioContext.destination);
+			setConnection({
+				audioContext,
+				processorNode,
+				stream,
+				streamNode,
+				ws
+			});
+		} catch (e: any) {
+			console.error('[Broadcast] Failed to start:', e);
+			setError(e?.message || 'Не удалось начать эфир');
+			setStatus('error');
 
-		setStatus('connecting');
-		setConnection({
-			audioContext,
-			processorNode,
-			stream,
-			streamNode,
-			ws
-		});
+			try {
+				streamNode?.disconnect();
+			} catch {}
+			try {
+				processorNode?.disconnect();
+			} catch {}
+			try {
+				await audioContext?.close();
+			} catch {}
+			try {
+				stream?.getTracks().forEach((track) => track.stop());
+			} catch {}
+			if (
+				ws &&
+				(ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)
+			) {
+				try {
+					ws.close();
+				} catch {}
+			}
+		}
 	};
 
 	const handleClick = () => {
-		if (status === 'idle') {
+		if (status === 'idle' || status === 'error') {
 			start();
 		} else {
 			stop();

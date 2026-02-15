@@ -12,23 +12,29 @@ export let ORIGIN = 'localhost:8000';
 export let SECURED = false;
 
 if (typeof window !== 'undefined') {
-	if (window.location.port === '5173') {
+	SECURED = window.location.protocol === 'https:';
+
+	if (import.meta.env.DEV) {
 		// DEV MODE
 		ORIGIN = `${window.location.hostname}:8000`;
 	} else {
 		// PRODUCTION MODE
 		ORIGIN = '';
-		if (window.location.protocol === 'https:') {
-			SECURED = true;
-		}
 	}
 }
 
-export const HTTP_BASE_URL = ORIGIN === '' ? '' : `http://${ORIGIN}`;
-export const WS_BASE_URL = ORIGIN === '' ? '' : `ws://${ORIGIN}`;
+const protocolHttp = SECURED ? 'https' : 'http';
+const protocolWs = SECURED ? 'wss' : 'ws';
+const currentHost = typeof window !== 'undefined' ? window.location.host : ORIGIN;
+const resolvedHost = ORIGIN === '' ? currentHost : ORIGIN;
+
+export const HTTP_BASE_URL =
+	import.meta.env.VITE_HTTP_BASE_URL || `${protocolHttp}://${resolvedHost}`;
+export const WS_BASE_URL =
+	import.meta.env.VITE_WS_BASE_URL || `${protocolWs}://${resolvedHost}`;
 
 export const api = axios.create({
-	baseURL: `${HTTP_BASE_URL}/api` // Replace with your backend base URL
+	baseURL: `${HTTP_BASE_URL}/api`
 });
 
 api.interceptors.request.use((config) => {

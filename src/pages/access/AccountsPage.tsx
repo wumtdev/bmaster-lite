@@ -120,11 +120,11 @@ export const AccountsPage = () => {
 	return (
 		<>
 			<div className='mx-auto max-w-[60rem] p-6'>
-				<H1>Аккаунты</H1>
+				<H1>Пользователи</H1>
 				<div className='flex gap-2'>
 					<Panel className='flex-1 mb-auto'>
 						<Panel.Header className='flex items-center p-3 px-4'>
-							Аккаунты
+							Пользователи
 							{!creatingAccount && (
 								<Button
 									className='text-center ml-auto'

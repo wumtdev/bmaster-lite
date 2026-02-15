@@ -512,7 +512,7 @@ const SchedulesPage = () => {
 						</div>
 					</Panel.Body>
 				</Panel>
-				<Panel className='min-w-[32rem] max-h-[55rem]'>
+				<Panel className='min-w-[32rem]'>
 					<Panel.Header>
 						<H2>
 							{selectedScheduleId ? (
@@ -526,7 +526,7 @@ const SchedulesPage = () => {
 							)}
 						</H2>
 					</Panel.Header>
-					<Panel.Body className='overflow-y-auto'>
+					<Panel.Body>
 						{editingLessons ? (
 							editingLessons.map((lesson, lesson_num) => {
 								let breakDisplay = null;

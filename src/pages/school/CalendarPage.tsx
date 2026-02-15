@@ -595,9 +595,13 @@ const CalendarPage = () => {
 											placeholder='Без расписания'
 											renderMenuItemChildren={(option) => (
 												<div
-													className={option.id === 'none' ? 'text-red-600' : ''}
+													className={
+														typeof option !== 'string' && option.id === 'none'
+															? 'text-red-600'
+															: ''
+													}
 												>
-													{option.name}
+													{typeof option === 'string' ? option : option.name}
 												</div>
 											)}
 										/>
