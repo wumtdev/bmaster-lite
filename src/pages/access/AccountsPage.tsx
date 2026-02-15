@@ -7,7 +7,8 @@ import {
 	UpdateAccountRequest
 } from '@/api/access/accounts';
 import Panel from '@/components/Panel';
-import { H1, Name, Note, Value } from '@/components/text';
+import PageLayout from '@/components/PageLayout';
+import { Name, Note, Value } from '@/components/text';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import './style.css';
 import { getRoles, RoleInfo } from '@/api/access/roles';
@@ -118,10 +119,8 @@ export const AccountsPage = () => {
 	}, [selectedAccountId]);
 
 	return (
-		<>
-			<div className='mx-auto max-w-[60rem] p-6'>
-				<H1>Пользователи</H1>
-				<div className='flex gap-2'>
+		<PageLayout pageTitle='Пользователи' className='max-w-[60rem]'>
+				<div className='flex flex-col gap-4 lg:flex-row'>
 					<Panel className='flex-1 mb-auto'>
 						<Panel.Header className='flex items-center p-3 px-4'>
 							Пользователи
@@ -136,46 +135,48 @@ export const AccountsPage = () => {
 						</Panel.Header>
 						<Panel.Body className='p-0 max-h-[35rem] overflow-y-auto'>
 							{accounts ? (
-								<table className='w-full border-2'>
-									<thead className='bg-gray-300'>
-										<tr>
-											<th className=''>id</th>
-											<th>name</th>
-											<th>role</th>
-											<th>flags</th>
-										</tr>
-									</thead>
-									<tbody>
-										{accounts.map((account) => {
-											const isSelected = account.id === selectedAccountId;
-											return (
-												<tr
-													key={account.id}
-													className={cn(
-														'hover:bg-gray-100 cursor-pointer',
-														isSelected && 'bg-blue-200 hover:bg-blue-100'
-													)}
-													onClick={() => setSelectedAccountId(account.id)}
-												>
-													<td>{account.id}</td>
-													<td>{account.name}</td>
-													<td>
-														{account.role_ids
-															.map((roleId) => roleById[roleId]?.name || roleId)
-															.join(', ')}
-													</td>
-													<td></td>
-												</tr>
-											);
-										})}
-									</tbody>
-								</table>
+								<div className='overflow-x-auto'>
+									<table className='w-full border-2 min-w-[32rem]'>
+										<thead className='bg-gray-300'>
+											<tr>
+												<th className=''>id</th>
+												<th>name</th>
+												<th>role</th>
+												<th>flags</th>
+											</tr>
+										</thead>
+										<tbody>
+											{accounts.map((account) => {
+												const isSelected = account.id === selectedAccountId;
+												return (
+													<tr
+														key={account.id}
+														className={cn(
+															'hover:bg-gray-100 cursor-pointer',
+															isSelected && 'bg-blue-200 hover:bg-blue-100'
+														)}
+														onClick={() => setSelectedAccountId(account.id)}
+													>
+														<td>{account.id}</td>
+														<td>{account.name}</td>
+														<td>
+															{account.role_ids
+																.map((roleId) => roleById[roleId]?.name || roleId)
+																.join(', ')}
+														</td>
+														<td></td>
+													</tr>
+												);
+											})}
+										</tbody>
+									</table>
+								</div>
 							) : (
 								<Note>Загрузка...</Note>
 							)}
 						</Panel.Body>
 					</Panel>
-					<Panel className='min-w-[20rem] mb-auto'>
+					<Panel className='w-full min-w-0 lg:min-w-[20rem] lg:max-w-[24rem] mb-auto'>
 						{!creatingAccount ? (
 							<>
 								<Panel.Header>Свойства</Panel.Header>
@@ -322,11 +323,10 @@ export const AccountsPage = () => {
 									</div>
 								</Panel.Body>
 							</>
-						)}
-					</Panel>
-				</div>
+					)}
+				</Panel>
 			</div>
-		</>
+		</PageLayout>
 	);
 };
 

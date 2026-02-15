@@ -3,9 +3,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Spinner } from 'react-bootstrap';
 import { Mic, StopCircle } from 'react-bootstrap-icons';
 import { WS_BASE_URL } from '@/api';
-import { H1, H2, Note } from '@/components/text';
+import { H2, Note } from '@/components/text';
 import Panel from '@/components/Panel';
 import Kbd from '@/components/Kbd';
+import PageLayout from '@/components/PageLayout';
 
 // Replace these with your runtime env values
 const RATE = 48000;
@@ -265,8 +266,7 @@ export default function AnnouncementsPage(): JSX.Element {
 	};
 
 	return (
-		<div className='mx-auto max-w-2xl p-6'>
-			<H1>Объявления</H1>
+		<PageLayout pageTitle='Объявления' className='max-w-2xl p-6'>
 
 			<Panel>
 				<div className='p-8 bg-white'>
@@ -359,6 +359,6 @@ export default function AnnouncementsPage(): JSX.Element {
           .pulse-announce, .animate-spin { animation: none !important; }
         }
       `}</style>
-		</div>
+		</PageLayout>
 	);
 }

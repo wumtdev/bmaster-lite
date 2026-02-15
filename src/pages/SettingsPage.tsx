@@ -10,11 +10,12 @@ import {
 } from 'react-bootstrap-icons';
 import { useMutation } from '@tanstack/react-query';
 import Button from '@/components/Button';
-import { H1, Name, Note, Value } from '@/components/text';
+import { Name, Note, Value } from '@/components/text';
 import Panel from '@/components/Panel';
 import Field from '@/components/Field';
 import FileUploadButton from '@/components/FileUploadButton';
 import Toast from '@/components/Toast';
+import PageLayout from '@/components/PageLayout';
 import {
 	checkSchoolUpdates,
 	exportSchoolSettingsFile,
@@ -160,8 +161,7 @@ const SettingsPage = () => {
 		setNetworkSettings((prev) => ({ ...prev, [field]: value }));
 
 	return (
-		<div className='mx-auto flex flex-col w-full max-w-6xl p-4'>
-			<H1>Настройки</H1>
+		<PageLayout pageTitle='Настройки' className='max-w-[61.5rem]'>
 			<Toast
 				show={showToast}
 				setShow={setShowToast}
@@ -414,7 +414,7 @@ const SettingsPage = () => {
 					</Button>
 				</Modal.Footer>
 			</Modal>
-		</div>
+		</PageLayout>
 	);
 };
 

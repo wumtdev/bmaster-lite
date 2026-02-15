@@ -8,6 +8,7 @@ import {
 	patchLesson
 } from '@/api/lite/bells';
 import ForegroundNotification from '@/components/ForegroundNotification';
+import PageLayout from '@/components/PageLayout';
 import { useSounds } from '@/sounds';
 import { cn, countMinutes, formatDate } from '@/utils';
 import {
@@ -33,7 +34,7 @@ import {
 } from 'react-bootstrap-icons';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { Panel } from '@/components/Panel';
-import { H1, H2, Name, Note, Value } from '@/components/text';
+import { H2, Name, Note, Value } from '@/components/text';
 import { Button } from '@/components/Button';
 import Field from '@/components/Field';
 import {
@@ -239,12 +240,11 @@ const TodayPage = () => {
 	};
 
 	return (
-		<div className='mx-auto max-w-7xl p-6'>
-			<H1>Звонки сегодня</H1>
+		<PageLayout pageTitle='Звонки сегодня'>
 
 			<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
 				{/* Левая часть — список уроков */}
-				<div className='lg:col-span-2'>
+				<div className='lg:col-span-2 min-w-0'>
 					<Panel>
 						<Panel.Header className='flex items-center justify-between'>
 							<div className='flex items-center gap-3'>
@@ -359,47 +359,7 @@ const TodayPage = () => {
 				</div> */}
 			</div>
 
-			<style>{`
-          input[type=range] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 10px;
-            background: transparent;
-          }
-          input[type=range]::-webkit-slider-runnable-track {
-            height: 10px;
-            background: #e5e7eb;
-            border-radius: 999px;
-          }
-          input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            margin-top: -6px;
-            width: 22px;
-            height: 22px;
-            background: #2563eb;
-            border-radius: 999px;
-            box-shadow: 0 2px 6px rgba(37,99,235,0.35);
-            border: 3px solid white;
-          }
-          input[type=range]::-moz-range-track {
-            height: 10px;
-            background: #e5e7eb;
-            border-radius: 999px;
-          }
-          input[type=range]::-moz-range-thumb {
-            width: 22px;
-            height: 22px;
-            background: #2563eb;
-            border-radius: 999px;
-            border: 3px solid white;
-          }
-
-          /* адаптив: на мобильных - колонки складываются и карточки становятся компактнее */
-          @media (max-width: 1024px) {
-            .max-w-7xl { padding-left: 1rem; padding-right: 1rem; }
-          }
-        `}</style>
-		</div>
+		</PageLayout>
 	);
 };
 

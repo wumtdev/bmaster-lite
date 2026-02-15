@@ -19,10 +19,11 @@ import AudioPlayer from '@/components/AudioPlayer';
 import { HTTP_BASE_URL } from '@/api';
 import { playSound } from '@/api/queries';
 import FileUploadButton from '@/components/FileUploadButton';
-import { H1, H2, Name, Value, Note } from '@/components/text';
+import { H2, Name, Value, Note } from '@/components/text';
 import { useSounds } from '@/sounds';
 import Button from '@/components/Button';
 import Field from '@/components/Field';
+import PageLayout from '@/components/PageLayout';
 
 const SoundsPage = () => {
 	const { soundsQuery } = useSounds();
@@ -73,11 +74,10 @@ const SoundsPage = () => {
 	console.log(soundList);
 
 	return (
-		<div className='max-w-7xl mx-auto p-6'>
-			<H1>Библиотека звуков</H1>
+		<PageLayout pageTitle='Библиотека звуков'>
 			{/* Левая панель — список звуков */}
-			<div className='grid grid-cols-3 gap-6'>
-				<div className='col-span-2 bg-gray-50 rounded-xl shadow p-4 flex flex-col'>
+			<div className='grid grid-cols-1 items-start gap-4 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]'>
+				<div className='min-w-0 bg-gray-50 rounded-xl shadow p-4 flex flex-col'>
 					{soundsQuery.isLoading ? (
 						<div className='flex justify-center items-center flex-1'>
 							<Spinner />{' '}
@@ -144,7 +144,7 @@ const SoundsPage = () => {
 				</div>
 
 				{/* Правая панель — предпросмотр и управление звуком */}
-				<Panel className='flex flex-col'>
+					<Panel className='mx-auto w-full max-w-[24rem] flex flex-col xl:mx-0'>
 					{selectedSound ? (
 						<>
 							{/* <h2 className='text-lg font-semibold text-gray-700 mb-4'>
@@ -262,7 +262,7 @@ const SoundsPage = () => {
 					</Button>
 				</Modal.Footer>
 			</Modal>
-		</div>
+			</PageLayout>
 	);
 };
 

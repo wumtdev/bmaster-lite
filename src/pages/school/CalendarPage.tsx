@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'tailwindcss/tailwind.css';
-import { H1, H2, Note } from '@/components/text';
+import { H2, Note } from '@/components/text';
 import { Form } from 'react-bootstrap';
 import Panel from '@/components/Panel';
 import { Typeahead } from 'react-bootstrap-typeahead';
@@ -11,6 +11,7 @@ import {
 	CaretRightFill,
 	ClockFill
 } from 'react-bootstrap-icons';
+import PageLayout from '@/components/PageLayout';
 import { cn, fromDateFormat, formatDate } from '@/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -314,12 +315,11 @@ const CalendarPage = () => {
 	}
 	console.log(firstDayAssignment);
 	return (
-		<div className='mx-auto max-w-[1000rem] w-fit p-6'>
-			<H1>Календарь</H1>
-			<div className='flex gap-4'>
-				<div className='flex flex-col w-[22rem] items-center'>
+		<PageLayout pageTitle='Календарь' className='max-w-[50rem]'>
+			<div className='grid grid-cols-1 items-start gap-4 xl:grid-cols-[22rem_24rem] xl:justify-center'>
+				<div className='mx-auto flex w-full min-w-0 max-w-[22rem] flex-col'>
 					{/* Calendar */}
-					<Panel>
+						<Panel className='w-full'>
 						<Panel.Header className='flex px-4 py-2'>
 							<H2 className='m-auto flex items-center gap-3'>
 								<button
@@ -369,7 +369,7 @@ const CalendarPage = () => {
 											<div
 												key={day}
 												className={cn(
-													'w-10 relative h-10 flex rounded-md cursor-pointer items-center text-lg',
+													'w-8 relative h-8 sm:w-10 sm:h-10 flex rounded-md cursor-pointer items-center text-base sm:text-lg',
 													isSelected
 														? ' bg-blue-100 text-blue-900' +
 																(endDay === null
@@ -454,9 +454,9 @@ const CalendarPage = () => {
 						</div>
 					</Panel>
 				</div>
-				{/* Right panel */}
-				<div className='flex flex-col gap-3'>
-					<Panel>
+					{/* Right panel */}
+						<div className='mx-auto flex w-full min-w-0 max-w-[24rem] flex-col gap-3'>
+					<Panel className='relative'>
 						<Panel.Header className='p-2'>
 							<H2 className='flex'>
 								<Form.Check
@@ -474,7 +474,7 @@ const CalendarPage = () => {
 								{muteAllLessons ? 'Звонки' : 'Звонки'}
 							</H2>
 						</Panel.Header>
-						<Panel.Body className='p-3 flex flex-col gap-1 min-w-[16rem]'>
+						<Panel.Body className='p-3 flex flex-col gap-1 min-w-0'>
 							<p className='font-medium text-gray-700 mb-1'>Отдельные уроки:</p>
 							{/* <hr className='my-2 px-1' /> */}
 							{selectedDaysLessons.map((lessonTime, lessonNum) => (
@@ -495,7 +495,7 @@ const CalendarPage = () => {
 										}}
 										checked={!muteLessons.has(lessonNum)}
 									/>
-									<div className='text-lg flex gap-2'>
+									<div className='text-base sm:text-lg flex gap-2 min-w-0'>
 										<span>{lessonNum + 1}.</span>
 										<div className='rounded-solid rounded-lg'>
 											{lessonTime ? (
@@ -523,7 +523,7 @@ const CalendarPage = () => {
 						)}
 					</Panel>
 
-					<Panel className=''>
+					<Panel className='relative'>
 						<Panel.Header className='p-2'>
 							<H2 className='flex'>
 								<Form.Check
@@ -561,7 +561,7 @@ const CalendarPage = () => {
 									<div key={i} className='flex items-center'>
 										<span>{day}</span>
 										<Typeahead
-											className='w-40 h-8 ml-auto'
+											className='ml-auto h-8 w-36 sm:w-40'
 											emptyLabel='не найдено'
 											positionFixed
 											disabled={currentAssignment === null}
@@ -619,7 +619,7 @@ const CalendarPage = () => {
 					</Panel>
 				</div>
 			</div>
-		</div>
+		</PageLayout>
 	);
 };
 

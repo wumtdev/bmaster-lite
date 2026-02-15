@@ -1,8 +1,10 @@
 import { getActiveAssignment } from '@/api/school/assignments';
+import { getOverridesByDateRange } from '@/api/school/overrides';
 import { getSchedules } from '@/api/school/schedules';
 import { countMinutes, formatDate } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import { ClockFill } from 'react-bootstrap-icons';
 
 const weekdayApiNames = [
 	'sunday',
@@ -45,6 +47,11 @@ export default function Clock() {
 		queryFn: () => getActiveAssignment(dateKey),
 		refetchInterval: 60 * 1000
 	});
+	const activeOverrideQuery = useQuery({
+		queryKey: ['school.override', dateKey],
+		queryFn: () => getOverridesByDateRange(dateKey, dateKey),
+		refetchInterval: 60 * 1000
+	});
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -62,9 +69,18 @@ export default function Clock() {
 		scheduleId && schedulesQuery.data
 			? schedulesQuery.data.find((item) => item.id === scheduleId) || null
 			: null;
+	const activeOverrides = activeOverrideQuery.data || [];
+	const muteAllLessons = activeOverrides.some((item) => item.mute_all_lessons);
+	const muteLessons = new Set<number>(
+		activeOverrides.flatMap((item) => item.mute_lessons || [])
+	);
 
 	const countdownLabel = useMemo(() => {
-		if (schedulesQuery.isLoading || activeAssignmentQuery.isLoading) {
+		if (
+			schedulesQuery.isLoading ||
+			activeAssignmentQuery.isLoading ||
+			activeOverrideQuery.isLoading
+		) {
 			return 'Загрузка расписания...';
 		}
 
@@ -72,17 +88,27 @@ export default function Clock() {
 		if (lessons.length === 0) {
 			return 'Уроков сегодня нет';
 		}
+		if (muteAllLessons) {
+			return 'Все звонки на сегодня выключены';
+		}
 
 		const nowSeconds =
 			time.getHours() * 3600 + time.getMinutes() * 60 + time.getSeconds();
 		const normalizedLessons = lessons
 			.map((lesson, index) => ({
-				index: index + 1,
+				index,
 				start: toSeconds(lesson.start_at),
 				end: toSeconds(lesson.end_at)
 			}))
-			.filter((lesson) => lesson.start !== null && lesson.end !== null)
+			.filter(
+				(lesson) =>
+					lesson.start !== null && lesson.end !== null && lesson.end > lesson.start
+			)
+			.filter((lesson) => !muteLessons.has(lesson.index))
 			.sort((a, b) => a.start - b.start);
+		if (normalizedLessons.length === 0) {
+			return 'Звонки на сегодня выключены';
+		}
 
 		for (const lesson of normalizedLessons) {
 			if (nowSeconds < lesson.start) {
@@ -97,7 +123,15 @@ export default function Clock() {
 		}
 
 		return 'Уроки на сегодня закончились';
-	}, [activeAssignmentQuery.isLoading, schedule, schedulesQuery.isLoading, time]);
+	}, [
+		activeAssignmentQuery.isLoading,
+		activeOverrideQuery.isLoading,
+		muteAllLessons,
+		muteLessons,
+		schedule,
+		schedulesQuery.isLoading,
+		time
+	]);
 
 	const dateLabel = time.toLocaleDateString('ru-RU', {
 		day: '2-digit',
@@ -106,14 +140,21 @@ export default function Clock() {
 	});
 
 	return (
-		<div className='flex flex-col items-start text-slate-600'>
-			<div className='text-base font-mono leading-tight'>
-				{hours}
-				<span className={showColon ? '' : 'opacity-0'}>:</span>
-				{minutes}
+		<div className='flex items-center gap-2 rounded-lg border border-slate-200 bg-white/95 px-2 py-1.5 shadow-sm md:gap-3 md:rounded-xl md:px-3 md:py-2'>
+			<div className='flex flex-col items-start text-slate-700'>
+				<div className='text-base font-semibold font-mono leading-none tracking-tight md:text-lg'>
+					{hours}
+					<span className={showColon ? '' : 'opacity-0'}>:</span>
+					{minutes}
+					<ClockFill className='items-center justify-center ml-1 inline-block text-gray-600' size={16} />
+				</div>
+				<div className='text-[0.65rem] leading-tight text-slate-500 md:text-[0.7rem]'>
+					{dateLabel}
+				</div>
+				<div className='text-[0.66rem] leading-tight text-slate-500 md:text-[0.72rem]'>
+					{countdownLabel}
+				</div>
 			</div>
-			<div className='text-xs leading-tight'>{dateLabel}</div>
-			<div className='text-xs text-slate-500 leading-tight'>{countdownLabel}</div>
 		</div>
 	);
 }

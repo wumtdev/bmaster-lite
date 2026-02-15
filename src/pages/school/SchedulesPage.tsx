@@ -60,7 +60,8 @@ import {
 } from 'react-bootstrap-icons';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { Panel } from '@/components/Panel';
-import { H1, H2, Name, Note, Value } from '@/components/text';
+import { H2, Name, Note, Value } from '@/components/text';
+import PageLayout from '@/components/PageLayout';
 import { Button } from '@/components/Button';
 import Field from '@/components/Field';
 import TextProperty from '@/components/TextProperty';
@@ -398,14 +399,13 @@ const SchedulesPage = () => {
 	};
 
 	return (
-		<div className='mx-auto max-w-7xl w-fit p-6'>
-			<H1>Расписания</H1>
-			<div className='flex gap-6 min-h-[40rem]'>
-				<Panel className='min-w-[18rem] mb-auto'>
+		<PageLayout pageTitle='Расписания' className='max-w-[56rem]'>
+			<div className='grid grid-cols-1 gap-4 xl:min-h-[40rem] xl:grid-cols-[20rem_minmax(0,32rem)] xl:justify-center xl:gap-6'>
+				<Panel className='min-w-0 mb-auto xl:min-w-[20rem]'>
 					<Panel.Header>
 						<H2>Список</H2>
 					</Panel.Header>
-					<Panel.Body className='flex flex-col gap-1 pt-3 pb-3 pl-3 pr-0'>
+					<Panel.Body className='flex flex-col gap-1 p-3'>
 						{schedules
 							? schedules.map((schedule) => (
 									<div
@@ -422,20 +422,20 @@ const SchedulesPage = () => {
 										}}
 										key={schedule.id}
 									>
-										{schedule.id == selectedScheduleId && renaming ? (
-											<TextProperty
-												defaultValue={schedule.name}
-												edit
-												disabled={renameScheduleMutation.isPending}
-												className='h-full w-[11rem] text-black'
-												parent={{ onMouseDown: (e) => e.stopPropagation() }}
-												onSubmit={(v) => {
-													renameScheduleMutation.mutate(v);
-												}}
-											/>
-										) : (
-											<Value>{schedule.name}</Value>
-										)}
+											{schedule.id == selectedScheduleId && renaming ? (
+												<TextProperty
+													defaultValue={schedule.name}
+													edit
+													disabled={renameScheduleMutation.isPending}
+													className='h-full w-full max-w-[11rem] text-black'
+													parent={{ onMouseDown: (e) => e.stopPropagation() }}
+													onSubmit={(v) => {
+														renameScheduleMutation.mutate(v);
+													}}
+												/>
+											) : (
+												<Value className='truncate'>{schedule.name}</Value>
+											)}
 
 										{/* Троеточие справа */}
 										<div className='ml-auto relative'>
@@ -489,30 +489,30 @@ const SchedulesPage = () => {
 							  ))
 							: 'Загрузка...'}
 
-						<div className='mt-20'>
-							{creatingSchedule ? (
-								<TextProperty
-									edit
-									autoFocus
-									disabled={createScheduleMutation.isPending}
-									className='h-10 w-[13rem] text-black'
-									parent={{ onMouseDown: (e) => e.stopPropagation() }}
-									onSubmit={(v) => {
-										if (v) createScheduleMutation.mutate(v);
-									}}
-								/>
-							) : (
-								<Button
-									onClick={() => setCreatingSchedule(true)}
-									className='ml-auto px-[2rem]'
-								>
-									<Plus size={24} /> Создать
-								</Button>
-							)}
-						</div>
-					</Panel.Body>
-				</Panel>
-				<Panel className='min-w-[32rem]'>
+							<div className='mt-6'>
+								{creatingSchedule ? (
+									<TextProperty
+										edit
+										autoFocus
+										disabled={createScheduleMutation.isPending}
+										className='h-10 w-full max-w-[13rem] text-black'
+										parent={{ onMouseDown: (e) => e.stopPropagation() }}
+										onSubmit={(v) => {
+											if (v) createScheduleMutation.mutate(v);
+										}}
+									/>
+								) : (
+									<Button
+										onClick={() => setCreatingSchedule(true)}
+										className='w-full justify-center sm:ml-auto sm:w-auto sm:px-8'
+									>
+										<Plus size={24} /> Создать
+									</Button>
+								)}
+							</div>
+						</Panel.Body>
+					</Panel>
+					<Panel className='w-full min-w-0 xl:max-w-[32rem]'>
 					<Panel.Header>
 						<H2>
 							{selectedScheduleId ? (
@@ -576,22 +576,22 @@ const SchedulesPage = () => {
 							<Note>Выберите расписание для редактирования</Note>
 						)}
 					</Panel.Body>
-					{editingLessons && (
-						<div className='border-t p-3 flex justify-end gap-2'>
-							{unsaved && (
-								<div className='flex gap-[0.15rem]'>
-									<Button
-										className='rounded-r-none px-3'
-										variant='danger'
-										onClick={() => cancelEditing()}
-										disabled={saveScheduleLessonsMutation.isPending}
+						{editingLessons && (
+							<div className='border-t p-3 flex flex-col-reverse justify-end gap-2 sm:flex-row'>
+								{unsaved && (
+									<div className='flex w-full gap-[0.15rem] sm:w-auto'>
+										<Button
+											className='w-1/3 rounded-r-none px-3 sm:w-auto'
+											variant='danger'
+											onClick={() => cancelEditing()}
+											disabled={saveScheduleLessonsMutation.isPending}
 									>
 										<XCircleFill size={24} />
-									</Button>
-									<Button
-										className='text-white rounded-l-none px-3 gap-[1rem]'
-										onClick={() => saveScheduleLessonsMutation.mutate()}
-									>
+										</Button>
+										<Button
+											className='w-2/3 text-white rounded-l-none px-3 gap-[1rem] sm:w-auto'
+											onClick={() => saveScheduleLessonsMutation.mutate()}
+										>
 										{saveScheduleLessonsMutation.isPending ? (
 											<Spinner />
 										) : (
@@ -601,18 +601,18 @@ const SchedulesPage = () => {
 									</Button>
 								</div>
 							)}
-							<Button
-								onClick={() => addLesson()}
-								variant='secondary'
-								className='px-[2rem]'
-							>
-								<Plus size={24} /> Добавить урок
-							</Button>
+								<Button
+									onClick={() => addLesson()}
+									variant='secondary'
+									className='w-full justify-center sm:w-auto sm:px-8'
+								>
+									<Plus size={24} /> Добавить урок
+								</Button>
 						</div>
 					)}
 				</Panel>
 			</div>
-		</div>
+		</PageLayout>
 	);
 };
 
