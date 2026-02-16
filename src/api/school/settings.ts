@@ -57,6 +57,34 @@ export const exportSchoolSettingsFile = async (
 		})
 	).data as Blob;
 
+const getFilenameFromContentDisposition = (headerValue?: string) => {
+	if (!headerValue) {
+		return undefined;
+	}
+
+	const encodedFilenameMatch = headerValue.match(/filename\*=UTF-8''([^;]+)/i);
+	if (encodedFilenameMatch?.[1]) {
+		try {
+			return decodeURIComponent(encodedFilenameMatch[1].trim().replace(/["']/g, ''));
+		} catch {
+			// If decoding fails, try plain filename extraction.
+		}
+	}
+
+	const filenameMatch = headerValue.match(/filename="?([^";]+)"?/i);
+	return filenameMatch?.[1]?.trim();
+};
+
+export const downloadSchoolCertificate = async () => {
+	const response = await api.get('certs/download', { responseType: 'blob' });
+	const contentDisposition = response.headers?.['content-disposition'];
+
+	return {
+		blob: response.data as Blob,
+		fileName: getFilenameFromContentDisposition(contentDisposition)
+	};
+};
+
 export const setSchoolVolume = async (volume: number) =>
 	(await api.put('settings/volume', { volume })).data;
 

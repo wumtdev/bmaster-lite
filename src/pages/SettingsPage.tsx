@@ -16,6 +16,7 @@ import UpdateSoftwareModal, {
 import DangerConfirmModal from '@/components/DangerConfirmModal';
 import {
 	checkSchoolUpdates,
+	downloadSchoolCertificate,
 	exportSchoolSettingsFile,
 	getSchoolHealth,
 	getSettingsVolume,
@@ -170,6 +171,24 @@ const SettingsPage = () => {
 		mutationFn: () => saveNetworkSettings(networkSettings),
 		onSuccess: () => showPageToast('Сетевые параметры сохранены'),
 		onError: () => showPageToast('Не удалось сохранить сетевые параметры', 'warning')
+	});
+
+	const certificateDownloadMutation = useMutation({
+		mutationKey: ['settings.certs.download'],
+		mutationFn: () => downloadSchoolCertificate(),
+		onSuccess: ({ blob, fileName }) => {
+			const downloadUrl = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = downloadUrl;
+			link.download = fileName || 'certificate.crt';
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(downloadUrl);
+
+			showPageToast('Сертификат скачан');
+		},
+		onError: () => showPageToast('Не удалось скачать сертификат', 'warning')
 	});
 
 	const updateSoftwareMutation = useMutation({
@@ -499,6 +518,17 @@ const SettingsPage = () => {
 										<Power />
 										Перезагрузить сервер
 									</Button>
+
+									<Button
+										variant='success'
+										className='w-full'
+										onClick={() => certificateDownloadMutation.mutate()}
+										disabled={certificateDownloadMutation.isPending}
+									>
+										<Download/>
+										Скачать сертификат
+									</Button>
+									<Note>Чтобы убрать предупреждение о самоподписанном сертификате - скачайте сертификат по кнопке выше и доверьтесь ему.</Note>
 								</div>
 						</div>
 					</Panel.Body>
@@ -571,8 +601,11 @@ const SettingsPage = () => {
 							)}
 						</Button>
 					</Panel.Body>
-					</Panel>
-				</div>
+				</Panel>
+			</div>
+
+			<div className='mt-6 flex justify-end'>
+			</div>
 
 				<DangerConfirmModal
 					show={showRebootConfirm}
