@@ -65,6 +65,7 @@ import PageLayout from '@/components/PageLayout';
 import { Button } from '@/components/Button';
 import Field from '@/components/Field';
 import TextProperty from '@/components/TextProperty';
+import DangerConfirmModal from '@/components/DangerConfirmModal';
 
 /* ---------------- Context ---------------- */
 export type SchedulesContextData = {
@@ -277,6 +278,9 @@ const SchedulesPage = () => {
 	const isEditing = editingLessons !== null;
 
 	const [menuScheduleId, setMenuScheduleId] = useState<number | null>(null);
+	const [scheduleToDelete, setScheduleToDelete] = useState<ScheduleInfo | null>(
+		null
+	);
 
 	const [renaming, setRenaming] = useState<boolean>(false);
 
@@ -303,8 +307,6 @@ const SchedulesPage = () => {
 			setUnsaved(false);
 		}
 	};
-
-	useEffect(() => console.log(editingLessons), [editingLessons]);
 
 	const addLesson = () => {
 		editingLessons.push({
@@ -349,9 +351,13 @@ const SchedulesPage = () => {
 
 	const deleteScheduleMutation = useMutation({
 		mutationKey: ['school.schedules.delete'],
-		mutationFn: () => deleteSchedule(menuScheduleId),
-		onSuccess: () => {
+		mutationFn: (scheduleId: number) => deleteSchedule(scheduleId),
+		onSuccess: (_, scheduleId) => {
 			queryClient.invalidateQueries(['school.schedules']);
+			setScheduleToDelete(null);
+			if (selectedScheduleId === scheduleId) {
+				setSelectedScheduleId(null);
+			}
 		}
 	});
 
@@ -391,6 +397,17 @@ const SchedulesPage = () => {
 		return () => window.removeEventListener('mousedown', listener);
 	}, [menuScheduleId, renaming, creatingSchedule]);
 
+	const requestDeleteSchedule = (schedule: ScheduleInfo) => {
+		setScheduleToDelete(schedule);
+		setMenuScheduleId(null);
+	};
+
+	const confirmDeleteSchedule = () => {
+		if (scheduleToDelete) {
+			deleteScheduleMutation.mutate(scheduleToDelete.id);
+		}
+	};
+
 	const ctx: SchedulesContextData = {
 		editingLessons,
 		setEditingLessons,
@@ -398,10 +415,10 @@ const SchedulesPage = () => {
 		touch
 	};
 
-	return (
-		<PageLayout pageTitle='Расписания' className='max-w-[56rem]'>
-			<div className='grid grid-cols-1 gap-4 xl:min-h-[40rem] xl:grid-cols-[20rem_minmax(0,32rem)] xl:justify-center xl:gap-6'>
-				<Panel className='min-w-0 mb-auto xl:min-w-[20rem]'>
+		return (
+			<PageLayout pageTitle='Расписания' className='max-w-[56rem]'>
+				<div className='grid grid-cols-1 gap-4 xl:min-h-[40rem] xl:grid-cols-[20rem_minmax(0,32rem)] xl:justify-center xl:gap-6'>
+					<Panel className='min-w-0 mb-auto overflow-visible xl:min-w-[20rem]'>
 					<Panel.Header>
 						<H2>Список</H2>
 					</Panel.Header>
@@ -451,12 +468,12 @@ const SchedulesPage = () => {
 												<ThreeDotsVertical size={18} />
 											</button>
 
-											{menuScheduleId === schedule.id && (
-												<Panel
-													className='absolute right-0 z-10 flex flex-col rounded'
-													onMouseDown={(e) => {
-														e.stopPropagation();
-													}}
+												{menuScheduleId === schedule.id && (
+													<Panel
+														className='absolute right-0 z-30 flex flex-col rounded'
+														onMouseDown={(e) => {
+															e.stopPropagation();
+														}}
 												>
 													<button
 														className='p-2 text-left hover:bg-gray-100'
@@ -475,13 +492,13 @@ const SchedulesPage = () => {
 													>
 														Дублировать
 													</button>
-													<button
-														className='p-2 text-left text-red-600 hover:bg-gray-100'
-														disabled={deleteScheduleMutation.isPending}
-														onClick={() => deleteScheduleMutation.mutate()}
-													>
-														Удалить
-													</button>
+														<button
+															className='p-2 text-left text-red-600 hover:bg-gray-100'
+															disabled={deleteScheduleMutation.isPending}
+															onClick={() => requestDeleteSchedule(schedule)}
+														>
+															Удалить
+														</button>
 												</Panel>
 											)}
 										</div>
@@ -610,10 +627,30 @@ const SchedulesPage = () => {
 								</Button>
 						</div>
 					)}
-				</Panel>
-			</div>
-		</PageLayout>
-	);
-};
+					</Panel>
+				</div>
+				<DangerConfirmModal
+					show={scheduleToDelete !== null}
+					title='Подтверждение удаления'
+					description='Вы уверены, что хотите удалить расписание?'
+					details={
+						scheduleToDelete ? (
+							<p className='bg-gray-100 p-2 rounded-md font-mono text-sm'>
+								расписание "{scheduleToDelete.name}"
+							</p>
+						) : null
+					}
+					warning={
+						<p className='text-red-600 text-sm'>Это действие невозможно отменить.</p>
+					}
+					confirmText='Удалить расписание'
+					pendingText='Удаление...'
+					onCancel={() => setScheduleToDelete(null)}
+					onConfirm={confirmDeleteSchedule}
+					isPending={deleteScheduleMutation.isPending}
+				/>
+			</PageLayout>
+		);
+	};
 
 export default SchedulesPage;

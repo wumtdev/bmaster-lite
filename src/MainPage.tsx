@@ -217,7 +217,7 @@ export default function MainPage() {
 						isSidebarCollapsed ? 'w-20' : 'w-64'
 					)}
 				>
-					<div className='flex items-center justify-between gap-2 border-b border-slate-200 px-3 py-3'>
+					<div className='flex items-center justify-between gap-2 border-b  border-slate-200 px-3 py-3'>
 						<Link
 							to='/'
 							className={cn(
