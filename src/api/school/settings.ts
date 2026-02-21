@@ -17,6 +17,7 @@ export type SchoolSettingsExportOptions = {
 };
 
 export type NetworkSettingsPayload = {
+	mode: 'dhcp' | 'static';
 	ip: string;
 	mask: string;
 	gateway: string;
@@ -96,8 +97,12 @@ export type SettingsVolumeResponse = {
 export const getSettingsVolume = async () =>
 	(await api.get('settings/volume')).data;
 
+export const getNetworkSettings = async () =>
+	(await api.get<NetworkSettingsPayload>('settings/net_settings')).data;
+
 export const saveNetworkSettings = async (payload: NetworkSettingsPayload) => {
 	const form = new FormData();
+	form.append('mode', payload.mode);
 	form.append('ip', payload.ip);
 	form.append('mask', payload.mask);
 	form.append('gateway', payload.gateway);
