@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type PointerEvent } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'tailwindcss/tailwind.css';
 import { H2, Note } from '@/components/text';
@@ -212,6 +212,54 @@ const CalendarPage = () => {
 		} else setMonthIndex(monthIndex - 1);
 	};
 
+	const updateRangeEnd = (day: number) => {
+		if (!brushing || dayA === null) {
+			return;
+		}
+
+		if (day === dayA) {
+			setDayB((prev) => (prev === null ? prev : null));
+			return;
+		}
+
+		setDayB((prev) => {
+			if (prev === day) {
+				return prev;
+			}
+			return day;
+		});
+	};
+
+	const getCalendarDayFromPoint = (clientX: number, clientY: number) => {
+		const element = document.elementFromPoint(clientX, clientY);
+		const dayElement = element?.closest('[data-calendar-day]');
+		const dayRaw = dayElement?.getAttribute('data-calendar-day');
+		const day = dayRaw ? Number(dayRaw) : Number.NaN;
+
+		if (!Number.isInteger(day) || day < 1 || day > monthDayCount) {
+			return null;
+		}
+
+		return day;
+	};
+
+	const handleDayPointerDown = (
+		event: PointerEvent<HTMLDivElement>,
+		day: number
+	) => {
+		if (event.pointerType === 'mouse' && event.shiftKey && dayA !== null) {
+			if (day !== dayA) {
+				setDayB(day);
+			}
+			return;
+		}
+
+		event.preventDefault();
+		setDayA(day);
+		setDayB(null);
+		setBrushing(true);
+	};
+
 	// Reset day selection after month change
 	useEffect(() => {
 		setDayA(
@@ -224,9 +272,40 @@ const CalendarPage = () => {
 
 	useEffect(() => {
 		const listener = () => setBrushing(false);
-		if (brushing) window.addEventListener('mouseup', listener);
-		return () => window.removeEventListener('mouseup', listener);
+		if (brushing) {
+			window.addEventListener('pointerup', listener);
+			window.addEventListener('pointercancel', listener);
+		}
+		return () => {
+			window.removeEventListener('pointerup', listener);
+			window.removeEventListener('pointercancel', listener);
+		};
 	}, [brushing]);
+
+	useEffect(() => {
+		const listener = (event: globalThis.PointerEvent) => {
+			if (!brushing) {
+				return;
+			}
+
+			if (event.pointerType === 'mouse' && (event.buttons & 1) !== 1) {
+				return;
+			}
+
+			const day = getCalendarDayFromPoint(event.clientX, event.clientY);
+			if (day !== null) {
+				updateRangeEnd(day);
+			}
+		};
+
+		if (brushing) {
+			window.addEventListener('pointermove', listener);
+		}
+
+		return () => {
+			window.removeEventListener('pointermove', listener);
+		};
+	}, [brushing, monthDayCount, dayA]);
 
 	useEffect(
 		() => console.log(activeAssignment),
@@ -316,9 +395,9 @@ const CalendarPage = () => {
 	console.log(firstDayAssignment);
 	return (
 		<PageLayout pageTitle='Календарь' className='max-w-[50rem]'>
-			<div className='grid grid-cols-1 items-start gap-4 xl:grid-cols-[22rem_24rem] xl:justify-center'>
-				<div className='mx-auto flex w-full min-w-0 max-w-[22rem] flex-col'>
-					{/* Calendar */}
+				<div className='grid grid-cols-1 items-start gap-4 xl:grid-cols-[22rem_24rem] xl:justify-center'>
+					<div className='mx-auto flex w-full min-w-0 max-w-[22rem] flex-col'>
+						{/* Calendar */}
 						<Panel className='w-full'>
 						<Panel.Header className='flex px-4 py-2'>
 							<H2 className='m-auto flex items-center gap-3'>
@@ -348,13 +427,13 @@ const CalendarPage = () => {
 									))}
 								</div>
 
-								<div className='grid grid-cols-7 select-none text-center gap-[0.2rem]'>
-									{[...Array(weekdayNormalMap[monthStart.getDay()])].map(
-										(_, i) => (
-											<div />
-										)
-									)}
-									{[...Array(monthDayCount)].map((_, i) => {
+									<div className='grid grid-cols-7 select-none text-center gap-[0.2rem]'>
+										{[...Array(weekdayNormalMap[monthStart.getDay()])].map(
+											(_, i) => (
+												<div />
+											)
+										)}
+										{[...Array(monthDayCount)].map((_, i) => {
 										const day = i + 1;
 										const isSelected =
 											startDay === day ||
@@ -365,37 +444,30 @@ const CalendarPage = () => {
 											overridesByDay !== null ? overridesByDay[day] : null;
 										const assignment =
 											assignmentsByDay !== null ? assignmentsByDay[day] : null;
-										return (
-											<div
-												key={day}
-												className={cn(
-													'w-8 relative h-8 sm:w-10 sm:h-10 flex rounded-md cursor-pointer items-center text-base sm:text-lg',
-													isSelected
-														? ' bg-blue-100 text-blue-900' +
-																(endDay === null
-																	? ''
-																	: day === startDay
-																	? ' rounded-l-xl'
-																	: day === endDay
-																	? ' rounded-r-xl'
-																	: 'bg-blue-100')
-														: ' hover:bg-gray-100',
-													day == dayA && 'ring-inset ring-2 ring-blue-300'
-												)}
-												onMouseDown={(e) => {
-													if (e.shiftKey) {
-														if (day !== dayA) setDayB(day);
-													} else {
-														setDayA(day);
-														setDayB(null);
-														setBrushing(true);
+											return (
+												<div
+													key={day}
+													data-calendar-day={day}
+													className={cn(
+														'w-8 relative h-8 sm:w-10 sm:h-10 flex rounded-md cursor-pointer items-center text-base sm:text-lg touch-none',
+														isSelected
+															? ' bg-blue-100 text-blue-900' +
+																	(endDay === null
+																		? ''
+																		: day === startDay
+																			? ' rounded-l-xl'
+																			: day === endDay
+																				? ' rounded-r-xl'
+																				: 'bg-blue-100')
+															: ' hover:bg-gray-100',
+														day == dayA && 'ring-inset ring-2 ring-blue-300'
+													)}
+													onPointerDown={(event) =>
+														handleDayPointerDown(event, day)
 													}
-												}}
-												onMouseMove={() => {
-													if (brushing && day !== dayA && day !== dayB)
-														setDayB(day);
-												}}
-											>
+													onPointerEnter={() => updateRangeEnd(day)}
+													onPointerMove={() => updateRangeEnd(day)}
+												>
 												<span
 													className={cn(
 														'm-auto',
@@ -427,13 +499,13 @@ const CalendarPage = () => {
 								</div>
 							</div>
 						</Panel.Body>
-						<div className='p-3 border-t-2'>
-							<Note className='flex flex-col gap-2'>
-								<div>
-									<p>Выберите день или диапазон для внесения изменений.</p>
-									<p>• Клик — выбрать день</p>
-									<p>• Удерживать — выбрать диапазон</p>
-								</div>
+							<div className='p-3 border-t-2'>
+								<Note className='flex flex-col gap-2'>
+									<div>
+										<p>Выберите день или диапазон для внесения изменений.</p>
+										<p>• Клик — выбрать день</p>
+										<p>• Удерживать/свайп — выбрать диапазон</p>
+									</div>
 								<hr />
 								<div>
 									<p className='font-semibold mb-2'>Легенда:</p>
