@@ -1,5 +1,4 @@
-// @ts-nocheck
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Spinner } from 'react-bootstrap';
 import { Mic, StopCircle } from 'react-bootstrap-icons';
 import { WS_BASE_URL } from '@/api';
@@ -8,25 +7,85 @@ import Panel from '@/components/Panel';
 import Kbd from '@/components/Kbd';
 import PageLayout from '@/components/PageLayout';
 
-// Replace these with your runtime env values
 const RATE = 48000;
 const CHANNELS = 1;
+const TIMESLICE_MS = 250;
 
 interface Connection {
 	ws: WebSocket;
-	audioContext: AudioContext;
-	processorNode: ScriptProcessorNode;
+	mediaRecorder: MediaRecorder;
 	stream: MediaStream;
-	streamNode: MediaStreamAudioSourceNode;
+	mimeType: string;
+	timesliceMs: number;
+	seq: number;
+	sampleRateHint: number;
+	channelsHint: number;
 }
 
 type BroadcastStatus = 'idle' | 'connecting' | 'waiting' | 'started' | 'error';
 
-export default function AnnouncementsPage(): JSX.Element {
+interface WsServerMessage {
+	type: 'error' | 'started' | 'stopped' | 'waiting' | string;
+	error?: string;
+}
+
+interface WsStartMessage {
+	type: 'start';
+	icom: string;
+	priority: number;
+	force: boolean;
+	codec: string;
+	container: string;
+	mime_type: string;
+	timeslice_ms: number;
+	sample_rate_hint: number;
+	channels_hint: number;
+}
+
+const supportsMediaRecorder = (): boolean => {
+	return typeof window !== 'undefined' && typeof window.MediaRecorder !== 'undefined';
+};
+
+const chooseMimeType = (): string | null => {
+	if (!supportsMediaRecorder()) return null;
+	const candidates = [
+		'audio/webm;codecs=opus',
+		'audio/webm',
+		'audio/mp4;codecs=mp4a.40.2'
+	];
+	for (const mimeType of candidates) {
+		if (MediaRecorder.isTypeSupported(mimeType)) return mimeType;
+	}
+	return null;
+};
+
+const codecFromMimeType = (mimeType: string): string => {
+	if (mimeType.includes('opus')) return 'opus';
+	if (mimeType.includes('mp4a')) return 'aac';
+	return 'unknown';
+};
+
+const containerFromMimeType = (mimeType: string): string => {
+	if (mimeType.includes('webm')) return 'webm';
+	if (mimeType.includes('mp4')) return 'mp4';
+	return 'unknown';
+};
+
+const stopRecorder = async (mediaRecorder: MediaRecorder): Promise<void> => {
+	if (mediaRecorder.state === 'inactive') return;
+	await new Promise<void>((resolve) => {
+		const onStop = () => resolve();
+		mediaRecorder.addEventListener('stop', onStop, { once: true });
+		mediaRecorder.stop();
+	});
+};
+
+export default function AnnouncementsPage() {
 	const [connection, setConnection] = useState<Connection | null>(null);
 	const [status, setStatus] = useState<BroadcastStatus>('idle');
 	const [error, setError] = useState<string | null>(null);
 	const connectionRef = useRef<Connection | null>(null);
+	const isStoppingRef = useRef(false);
 
 	const blocked = status === 'connecting';
 
@@ -39,20 +98,18 @@ export default function AnnouncementsPage(): JSX.Element {
 	) => {
 		const { closeSocket = true, nextStatus = 'idle' } = options;
 		const conn = connectionRef.current;
-		connectionRef.current = null;
-		setConnection(null);
-		setStatus(nextStatus);
-
 		if (!conn) return;
 
+		isStoppingRef.current = true;
+		setStatus(nextStatus);
+
 		try {
-			conn.streamNode.disconnect();
+			await stopRecorder(conn.mediaRecorder);
 		} catch {}
 		try {
-			conn.processorNode.disconnect();
-		} catch {}
-		try {
-			await conn.audioContext.close();
+			if (closeSocket && conn.ws.readyState === WebSocket.OPEN) {
+				conn.ws.send(JSON.stringify({ type: 'stop' }));
+			}
 		} catch {}
 		try {
 			conn.stream.getTracks().forEach((track) => track.stop());
@@ -66,6 +123,10 @@ export default function AnnouncementsPage(): JSX.Element {
 				conn.ws.close();
 			} catch {}
 		}
+
+		connectionRef.current = null;
+		setConnection(null);
+		isStoppingRef.current = false;
 	};
 
 	useEffect(() => {
@@ -75,29 +136,35 @@ export default function AnnouncementsPage(): JSX.Element {
 
 		const wsOpen = () => {
 			console.log('[WS] Opened');
+			const startMessage: WsStartMessage = {
+				type: 'start',
+				icom: 'main',
+				priority: 4,
+				force: true,
+				codec: codecFromMimeType(connection.mimeType),
+				container: containerFromMimeType(connection.mimeType),
+				mime_type: connection.mimeType,
+				timeslice_ms: connection.timesliceMs,
+				sample_rate_hint: connection.sampleRateHint,
+				channels_hint: connection.channelsHint
+			};
 			ws.send(
-				JSON.stringify({
-					icom: 'main',
-					rate: RATE,
-					channels: CHANNELS,
-					priority: 4,
-					force: true
-				})
+				JSON.stringify(startMessage)
 			);
 		};
 
-		const wsError = (e) => {
+		const wsError = (e: Event) => {
 			console.error('[WS] Error:', e);
 			setError('Ошибка WebSocket-соединения');
 			stop({ closeSocket: false, nextStatus: 'error' });
 		};
 
-		const wsMessage = (e) => {
+		const wsMessage = (e: MessageEvent) => {
 			const data = e.data;
 			console.log('[WS] Message:', data);
-			let msg: any = null;
+			let msg: WsServerMessage | null = null;
 			try {
-				msg = JSON.parse(data);
+				msg = JSON.parse(String(data)) as WsServerMessage;
 			} catch {
 				return;
 			}
@@ -109,6 +176,9 @@ export default function AnnouncementsPage(): JSX.Element {
 					break;
 				case 'started':
 					setStatus('started');
+					if (connection.mediaRecorder.state === 'inactive') {
+						connection.mediaRecorder.start(connection.timesliceMs);
+					}
 					break;
 				case 'stopped':
 					setStatus('waiting');
@@ -121,7 +191,9 @@ export default function AnnouncementsPage(): JSX.Element {
 
 		const wsClose = () => {
 			console.log('[WS] Closed');
-			if (connectionRef.current) stop({ closeSocket: false, nextStatus: 'idle' });
+			if (!isStoppingRef.current && connectionRef.current) {
+				stop({ closeSocket: false, nextStatus: 'idle' });
+			}
 		};
 
 		if (ws.readyState === WebSocket.OPEN) {
@@ -140,24 +212,6 @@ export default function AnnouncementsPage(): JSX.Element {
 		};
 	}, [connection]);
 
-	useEffect(() => {
-		if (!connection) return;
-		const { processorNode } = connection;
-
-		const processAudio = (e) => {
-			if (status !== 'started') return;
-			const data = new Float32Array(e.inputBuffer.getChannelData(0));
-			const { ws } = connection;
-			if (ws.readyState !== WebSocket.OPEN) return;
-			ws.send(data.buffer);
-		};
-
-		processorNode.addEventListener('audioprocess', processAudio);
-		return () => {
-			processorNode.removeEventListener('audioprocess', processAudio);
-		};
-	}, [connection, status]);
-
 	const start = async () => {
 		setError(null);
 		const token = localStorage.getItem('bmaster.auth.token');
@@ -166,12 +220,16 @@ export default function AnnouncementsPage(): JSX.Element {
 			setStatus('error');
 			return;
 		}
+		const mimeType = chooseMimeType();
+		if (!mimeType) {
+			setError('Opus/WebM не поддерживается в этом браузере');
+			setStatus('error');
+			return;
+		}
 
 		let ws: WebSocket | null = null;
 		let stream: MediaStream | null = null;
-		let audioContext: AudioContext | null = null;
-		let streamNode: MediaStreamAudioSourceNode | null = null;
-		let processorNode: ScriptProcessorNode | null = null;
+		let mediaRecorder: MediaRecorder | null = null;
 
 		try {
 			setStatus('connecting');
@@ -187,35 +245,43 @@ export default function AnnouncementsPage(): JSX.Element {
 				video: false
 			});
 
-			// @ts-ignore
-			audioContext = new (window.AudioContext || window.webkitAudioContext)({
-				sampleRate: RATE
+			mediaRecorder = new MediaRecorder(stream, {
+				mimeType
 			});
-			streamNode = audioContext.createMediaStreamSource(stream);
-			processorNode = audioContext.createScriptProcessor(16384, 1, 1);
-			streamNode.connect(processorNode);
-			processorNode.connect(audioContext.destination);
+			const sampleRateHint = stream.getAudioTracks()[0]?.getSettings().sampleRate ?? RATE;
+			const channelsHint = stream.getAudioTracks()[0]?.getSettings().channelCount ?? CHANNELS;
+			mediaRecorder.addEventListener('dataavailable', async (event: BlobEvent) => {
+				if (!connectionRef.current) return;
+				if (event.data.size === 0) return;
+				const activeConnection = connectionRef.current;
+				if (activeConnection.ws.readyState !== WebSocket.OPEN) return;
+				const arrayBuffer = await event.data.arrayBuffer();
+				activeConnection.ws.send(arrayBuffer);
+				activeConnection.seq += 1;
+			});
+
+			mediaRecorder.addEventListener('error', () => {
+				setError('Ошибка кодирования аудио');
+				stop({ closeSocket: true, nextStatus: 'error' });
+			});
 
 			setConnection({
-				audioContext,
-				processorNode,
+				mediaRecorder,
 				stream,
-				streamNode,
-				ws
+				mimeType,
+				timesliceMs: TIMESLICE_MS,
+				seq: 0,
+				ws,
+				sampleRateHint,
+				channelsHint
 			});
-		} catch (e: any) {
+		} catch (e: unknown) {
 			console.error('[Broadcast] Failed to start:', e);
-			setError(e?.message || 'Не удалось начать эфир');
+			setError(e instanceof Error ? e.message : 'Не удалось начать эфир');
 			setStatus('error');
 
 			try {
-				streamNode?.disconnect();
-			} catch {}
-			try {
-				processorNode?.disconnect();
-			} catch {}
-			try {
-				await audioContext?.close();
+				if (mediaRecorder) await stopRecorder(mediaRecorder);
 			} catch {}
 			try {
 				stream?.getTracks().forEach((track) => track.stop());
@@ -304,7 +370,7 @@ export default function AnnouncementsPage(): JSX.Element {
 							/>
 
 							<div className='relative z-10 flex items-center justify-center'>
-								{status === 'connecting' && <Spinner size={44} />}
+								{status === 'connecting' && <Spinner style={{ width: 44, height: 44 }} />}
 								{status === 'idle' && <Mic size={44} />}
 								{status === 'started' && <StopCircle size={44} />}
 								{status === 'waiting' && <Mic size={44} />}
@@ -326,11 +392,15 @@ export default function AnnouncementsPage(): JSX.Element {
 							<div className='inline-grid grid-cols-2 gap-4 text-sm text-slate-500 bg-slate-50 px-4 py-2 rounded-md'>
 								<div className='flex flex-col items-start'>
 									<div className='text-xs text-slate-400'>Кодек</div>
-									<div className='font-medium text-slate-700'>Opus</div>
+									<div className='font-medium text-slate-700'>
+										{connection?.mimeType || 'n/a'}
+									</div>
 								</div>
 								<div className='flex flex-col items-end'>
-									<div className='text-xs text-slate-400'>Частота</div>
-									<div className='font-medium text-slate-700'>{RATE} Hz</div>
+									<div className='text-xs text-slate-400'>Срез</div>
+									<div className='font-medium text-slate-700'>
+										{connection?.timesliceMs ?? TIMESLICE_MS} ms
+									</div>
 								</div>
 								<Note className='col-span-2 text-center text-xs mb-2'>
 									Логи и ошибки выводятся в консоль.
