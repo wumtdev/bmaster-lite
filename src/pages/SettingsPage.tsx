@@ -18,12 +18,10 @@ import {
 	checkSchoolUpdates,
 	downloadSchoolCertificate,
 	exportSchoolSettingsFile,
-	getNetworkSettings,
 	getSchoolHealth,
 	getSettingsVolume,
 	importSchoolSettingsFile,
 	rebootSchoolDevice,
-	saveNetworkSettings,
 	setSchoolVolume,
 	updateSchoolSoftware
 } from '@/api/school/settings';
@@ -39,7 +37,6 @@ const SettingsPage = () => {
 		'success'
 	);
 	const [showRebootConfirm, setShowRebootConfirm] = useState(false);
-	const [showNetworkSaveConfirm, setShowNetworkSaveConfirm] = useState(false);
 	const [showUpdateModal, setShowUpdateModal] = useState(false);
 	const [updatePhase, setUpdatePhase] = useState<UpdatePhase>('confirm');
 	const [updateErrorMessage, setUpdateErrorMessage] = useState('');
@@ -56,13 +53,6 @@ const SettingsPage = () => {
 		overrides: true
 	});
 
-	const [networkSettings, setNetworkSettings] = useState({
-		mode: 'static' as 'dhcp' | 'static',
-		ip: '192.168.1.10',
-		mask: '255.255.255.0',
-		gateway: '192.168.1.1',
-		dns: '8.8.8.8'
-	});
 	const [deviceVolume, setDeviceVolume] = useState(65);
 
 	const showPageToast = (
@@ -120,30 +110,7 @@ const SettingsPage = () => {
 			}
 		};
 
-		const initNetwork = async () => {
-			try {
-				const response = await getNetworkSettings();
-				if (!isActive) {
-					return;
-				}
-
-				setNetworkSettings((prev) => ({
-					mode: String(response?.mode ?? '').toLowerCase() === 'dhcp' ? 'dhcp' : 'static',
-					ip: typeof response?.ip === 'string' ? response.ip : prev.ip,
-					mask: typeof response?.mask === 'string' ? response.mask : prev.mask,
-					gateway:
-						typeof response?.gateway === 'string' ? response.gateway : prev.gateway,
-					dns: typeof response?.dns === 'string' ? response.dns : prev.dns
-				}));
-			} catch {
-				if (isActive) {
-					showPageToast('Не удалось получить сетевые параметры', 'warning');
-				}
-			}
-		};
-
 		initVolume();
-		initNetwork();
 
 		return () => {
 			isActive = false;
@@ -192,16 +159,6 @@ const SettingsPage = () => {
 		mutationFn: (volume: number) => setSchoolVolume(volume),
 		onError: () =>
 			showPageToast('Не удалось отправить значение громкости', 'warning')
-	});
-
-	const netSettingsMutation = useMutation({
-		mutationKey: ['settings.net_settings.save'],
-		mutationFn: () => saveNetworkSettings(networkSettings),
-		onSuccess: () => {
-			setShowNetworkSaveConfirm(false);
-			showPageToast('Сетевые параметры сохранены');
-		},
-		onError: () => showPageToast('Не удалось сохранить сетевые параметры', 'warning')
 	});
 
 	const certificateDownloadMutation = useMutation({
@@ -409,11 +366,8 @@ const SettingsPage = () => {
 		});
 	};
 
-	const updateNetworkField = (field: string, value: string) =>
-		setNetworkSettings((prev) => ({ ...prev, [field]: value }));
-
 	return (
-		<PageLayout pageTitle='Настройки' className='max-w-[61.5rem]'>
+		<PageLayout pageTitle='Настройки' className='max-w-[36rem]'>
 			<Toast
 				show={showToast}
 				setShow={setShowToast}
@@ -422,9 +376,7 @@ const SettingsPage = () => {
 				delay={4500}
 			/>
 
-			<div className='grid grid-cols-1 lg:grid-cols-[36rem_24rem] lg:justify-center gap-6 items-start'>
-				<Panel className='w-full lg:w-[36rem]'>
-					<Panel.Header>Настройки школы</Panel.Header>
+			<Panel className='w-full'>
 					<Panel.Body className='p-5 flex flex-col gap-4'>
 						<Field>
 							<Name>Конфигурация</Name>
@@ -563,103 +515,7 @@ const SettingsPage = () => {
 								</div>
 						</div>
 					</Panel.Body>
-				</Panel>
-
-				<Panel>
-					<Panel.Header>Сетевые настройки</Panel.Header>
-					<Panel.Body className='p-4 space-y-5'>
-						<Field>
-							<Name>Режим</Name>
-							<Value>
-								<select
-									className='w-full p-2 border rounded-md'
-									value={networkSettings.mode}
-									onChange={(e) =>
-										setNetworkSettings((prev) => ({
-											...prev,
-											mode: e.target.value === 'dhcp' ? 'dhcp' : 'static'
-										}))
-									}
-								>
-									<option value='dhcp'>DHCP</option>
-									<option value='static'>Static</option>
-								</select>
-							</Value>
-						</Field>
-
-						{networkSettings.mode === 'static' && (
-							<>
-								<Field>
-									<Name>IP адрес</Name>
-									<Value>
-										<input
-											type='text'
-											className='w-full p-2 border rounded-md'
-											value={networkSettings.ip}
-											onChange={(e) => updateNetworkField('ip', e.target.value)}
-											placeholder='192.168.1.10'
-										/>
-									</Value>
-								</Field>
-
-								<Field>
-									<Name>Маска</Name>
-									<Value>
-										<input
-											type='text'
-											className='w-full p-2 border rounded-md'
-											value={networkSettings.mask}
-											onChange={(e) => updateNetworkField('mask', e.target.value)}
-											placeholder='255.255.255.0'
-										/>
-									</Value>
-								</Field>
-
-								<Field>
-									<Name>Шлюз</Name>
-									<Value>
-										<input
-											type='text'
-											className='w-full p-2 border rounded-md'
-											value={networkSettings.gateway}
-											onChange={(e) => updateNetworkField('gateway', e.target.value)}
-											placeholder='192.168.1.1'
-										/>
-									</Value>
-								</Field>
-
-								<Field>
-									<Name>DNS</Name>
-									<Value>
-										<input
-											type='text'
-											className='w-full p-2 border rounded-md'
-											value={networkSettings.dns}
-											onChange={(e) => updateNetworkField('dns', e.target.value)}
-											placeholder='8.8.8.8'
-										/>
-									</Value>
-								</Field>
-							</>
-						)}
-
-						<Button
-							className='w-full'
-							onClick={() => setShowNetworkSaveConfirm(true)}
-							disabled={netSettingsMutation.isPending}
-						>
-							{netSettingsMutation.isPending ? (
-								<Spinner animation='border' size='sm' />
-							) : (
-								'Сохранить'
-							)}
-						</Button>
-					</Panel.Body>
-				</Panel>
-			</div>
-
-			<div className='mt-6 flex justify-end'>
-			</div>
+			</Panel>
 
 			<DangerConfirmModal
 				show={showRebootConfirm}
@@ -676,22 +532,6 @@ const SettingsPage = () => {
 				onCancel={() => setShowRebootConfirm(false)}
 				onConfirm={() => rebootMutation.mutate()}
 				isPending={rebootMutation.isPending}
-			/>
-			<DangerConfirmModal
-				show={showNetworkSaveConfirm}
-				title='Подтверждение сохранения'
-				description='Вы действительно хотите применить сетевые настройки?'
-				warning={
-					<p className='text-red-600 text-sm'>
-						Это действие может привести к потере соединения с устройством и его
-						нельзя отменить.
-					</p>
-				}
-				confirmText='Применить настройки'
-				pendingText='Сохранение...'
-				onCancel={() => setShowNetworkSaveConfirm(false)}
-				onConfirm={() => netSettingsMutation.mutate()}
-				isPending={netSettingsMutation.isPending}
 			/>
 			<UpdateSoftwareModal
 				show={showUpdateModal}

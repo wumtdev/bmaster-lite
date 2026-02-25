@@ -42,33 +42,14 @@ interface WsStartMessage {
 	channels_hint: number;
 }
 
+const OPUS_MIME = 'audio/webm;codecs=opus';
 const supportsMediaRecorder = (): boolean => {
 	return typeof window !== 'undefined' && typeof window.MediaRecorder !== 'undefined';
 };
 
 const chooseMimeType = (): string | null => {
 	if (!supportsMediaRecorder()) return null;
-	const candidates = [
-		'audio/webm;codecs=opus',
-		'audio/webm',
-		'audio/mp4;codecs=mp4a.40.2'
-	];
-	for (const mimeType of candidates) {
-		if (MediaRecorder.isTypeSupported(mimeType)) return mimeType;
-	}
-	return null;
-};
-
-const codecFromMimeType = (mimeType: string): string => {
-	if (mimeType.includes('opus')) return 'opus';
-	if (mimeType.includes('mp4a')) return 'aac';
-	return 'unknown';
-};
-
-const containerFromMimeType = (mimeType: string): string => {
-	if (mimeType.includes('webm')) return 'webm';
-	if (mimeType.includes('mp4')) return 'mp4';
-	return 'unknown';
+	return MediaRecorder.isTypeSupported(OPUS_MIME) ? OPUS_MIME : null;
 };
 
 const stopRecorder = async (mediaRecorder: MediaRecorder): Promise<void> => {
@@ -141,8 +122,8 @@ export default function AnnouncementsPage() {
 				icom: 'main',
 				priority: 4,
 				force: true,
-				codec: codecFromMimeType(connection.mimeType),
-				container: containerFromMimeType(connection.mimeType),
+				codec: 'opus',
+				container: 'webm',
 				mime_type: connection.mimeType,
 				timeslice_ms: connection.timesliceMs,
 				sample_rate_hint: connection.sampleRateHint,

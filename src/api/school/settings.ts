@@ -16,14 +16,6 @@ export type SchoolSettingsExportOptions = {
 	overrides: boolean;
 };
 
-export type NetworkSettingsPayload = {
-	mode: 'dhcp' | 'static';
-	ip: string;
-	mask: string;
-	gateway: string;
-	dns: string;
-};
-
 const toBooleanParam = (value: boolean) => (value ? 'true' : 'false');
 
 export const getSchoolSettingsExportUrl = (
@@ -96,19 +88,6 @@ export type SettingsVolumeResponse = {
 
 export const getSettingsVolume = async () =>
 	(await api.get('settings/volume')).data;
-
-export const getNetworkSettings = async () =>
-	(await api.get<NetworkSettingsPayload>('settings/net_settings')).data;
-
-export const saveNetworkSettings = async (payload: NetworkSettingsPayload) => {
-	const form = new FormData();
-	form.append('mode', payload.mode);
-	form.append('ip', payload.ip);
-	form.append('mask', payload.mask);
-	form.append('gateway', payload.gateway);
-	form.append('dns', payload.dns);
-	return (await api.post('settings/net_settings', form)).data;
-};
 
 export const checkSchoolUpdates = async () => {
 	logSettingsApi('check_updates_start');

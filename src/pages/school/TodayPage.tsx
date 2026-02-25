@@ -79,7 +79,7 @@ const LessonCard = ({
 		<Panel className='flex flex-col rounded-lg' {...attrs}>
 			<Panel.Header className='flex items-center gap-3 p-3'>
 				<Form.Check
-					type='switch'
+					type='switch'window
 					disabled={ctx.overrideMutation.isPending}
 					onChange={(e) => {
 						if (e.target.checked) {
